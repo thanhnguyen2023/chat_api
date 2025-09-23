@@ -1,9 +1,4 @@
--- Create database and tables for chat application
--- Run this script to set up the database structure
 
-CREATE DATABASE IF NOT EXISTS chat_app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE chat_app;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
