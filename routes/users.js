@@ -5,6 +5,42 @@ const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
 
+// Get my profile
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    res.json({ data: req.user }) // req.user đã được middleware gán sẵn
+  } catch (error) {
+    console.error("Get profile error:", error)
+    res.status(500).json({ error: { message: "Failed to get profile" } })
+  }
+})
+
+// Update my profile
+router.put("/me", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id
+    const { username, email, avatar_url, status, full_name, gender, is_private, bio } = req.body
+
+    await User.update(
+      { username, email, avatar_url, status, full_name, gender, is_private, bio },
+      { where: { user_id: userId } }
+)
+
+
+    const updatedUser = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    })
+
+    res.json({
+      message: "Profile updated successfully",
+      data: updatedUser,
+    })
+  } catch (error) {
+    console.error("Update profile error:", error)
+    res.status(500).json({ error: { message: "Failed to update profile" } })
+  }
+})
+
 // Get all users (with search and pagination)
 router.get("/", authenticateToken, async (req, res) => {
   try {
@@ -379,5 +415,6 @@ router.get("/me/blocked", authenticateToken, async (req, res) => {
     })
   }
 })
+
 
 module.exports = router

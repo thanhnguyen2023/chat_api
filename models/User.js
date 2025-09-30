@@ -19,6 +19,24 @@ const User = sequelize.define(
         isAlphanumeric: true,
       },
     },
+    full_name: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    gender: {
+      type: DataTypes.ENUM("male", "female", "other", "unspecified"),
+      defaultValue: "unspecified",
+      allowNull: false,
+    },
+    is_private: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
