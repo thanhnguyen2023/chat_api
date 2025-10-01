@@ -8,7 +8,7 @@ const router = express.Router()
 // Get my profile
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-    res.json({ data: req.user }) // req.user đã được middleware gán sẵn
+    res.json({ data: req.user }) 
   } catch (error) {
     console.error("Get profile error:", error)
     res.status(500).json({ error: { message: "Failed to get profile" } })
@@ -125,9 +125,31 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       },
     })
 
+    // Check private profile
+    let userData = user.toJSON()
+    if (user.is_private) {
+      const isFriend = await UserContact.findOne({
+        where: {
+          user_id: req.user.user_id,
+          friend_id: userId,
+        },
+      })
+
+      if (!isFriend && req.user.user_id !== Number.parseInt(userId)) {
+        // Ẩn thông tin nhạy cảm khi profile riêng tư
+        userData = {
+          user_id: user.user_id,
+          username: user.username,
+          avatar_url: user.avatar_url,
+          status: user.status,
+          is_private: true,
+        }
+      }
+    }
+
     res.json({
       data: {
-        user: user.toJSON(),
+        user: userData,
         is_blocked: !!isBlocked,
       },
     })
@@ -138,6 +160,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
     })
   }
 })
+
 
 // Get user contacts/friends
 router.get("/me/contacts", authenticateToken, async (req, res) => {
