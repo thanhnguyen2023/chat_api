@@ -1,6 +1,6 @@
 // models/Follow.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/sequelize'); // import instance sequelize
+const sequelize = require('../config/sequelize'); 
 
 const Follow = sequelize.define('Follow', {
   follow_id: {
@@ -12,8 +12,8 @@ const Follow = sequelize.define('Follow', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',      // tên bảng users
-      key: 'user_id',       // cột khóa chính
+      model: 'users',      
+      key: 'user_id',       
     },
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
