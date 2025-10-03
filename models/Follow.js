@@ -37,7 +37,7 @@ const Follow = sequelize.define('Follow', {
   timestamps: false,
   indexes: [
     {
-      unique: true,                 // duy nhất theo cặp follower_id + following_id
+      unique: true,                 
       fields: ['follower_id', 'following_id'],
     },
   ],

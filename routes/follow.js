@@ -79,7 +79,6 @@ router.get('/friends', authenticateToken, async (req, res) => {
   const userId = req.user.user_id;
 
   try {
-    // Lấy tất cả những người mình follow
     const following = await Follow.findAll({
       where: { follower_id: userId },
       attributes: ['following_id']
@@ -89,7 +88,6 @@ router.get('/friends', authenticateToken, async (req, res) => {
 
     if (followingIds.length === 0) return res.json([]);
 
-    // Lấy những người trong danh sách trên cũng follow lại mình
     const mutual = await Follow.findAll({
       where: {
         follower_id: followingIds,
@@ -102,7 +100,6 @@ router.get('/friends', authenticateToken, async (req, res) => {
 
     if (mutualIds.length === 0) return res.json([]);
 
-    // Lấy thông tin user của mutual friends
     const friends = await User.findAll({
       where: { user_id: mutualIds },
       attributes: ['user_id', 'username', 'avatar_url']
@@ -112,6 +109,50 @@ router.get('/friends', authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Gợi ý follow (gợi ý ban bè)
+router.get('/suggestions', authenticateToken, async (req, res) => {
+  const userId = req.user.user_id;
+
+  try {
+    const following = await Follow.findAll({
+      where: { follower_id: userId },
+      attributes: ['following_id']
+    });
+    const followingIds = following.map(f => f.following_id);
+
+    if (followingIds.length === 0) {
+      return res.json([]);
+    }
+
+    const friendsOfFollowing = await Follow.findAll({
+      where: {
+        follower_id: followingIds,   
+      },
+      attributes: ['following_id']
+    });
+
+    const candidateIds = friendsOfFollowing.map(f => f.following_id);
+
+    const excludeIds = [userId, ...followingIds];
+    const uniqueCandidateIds = [...new Set(candidateIds)].filter(id => !excludeIds.includes(id));
+
+    if (uniqueCandidateIds.length === 0) {
+      return res.json([]);
+    }
+
+    const suggestions = await User.findAll({
+      where: { user_id: uniqueCandidateIds },
+      attributes: ['user_id', 'username', 'avatar_url']
+    });
+
+    res.json(suggestions);
+
+  } catch (err) {
+    console.error("Follow suggestions error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
