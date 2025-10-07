@@ -8,9 +8,9 @@ import { users as mockUsers } from '@/data/mock';
 const RightPanel = () => {
   const { currentUser } = useAuth();
   const suggestions = mockUsers.filter(user => user.id !== currentUser.id).slice(0, 5);
-
+  
   return (
-    <aside className="hidden lg:flex flex-col w-80 p-6 sticky top-0 right-0 h-screen bg-background">
+    <aside className="hidden lg:flex flex-col p-6 sticky top-0 right-0 pt-8 h-screen bg-background">
       <div className="flex items-center justify-between mb-6">
         <Link to={`/profile/${currentUser.username}`} className="flex items-center gap-3">
           <Avatar className="h-14 w-14">

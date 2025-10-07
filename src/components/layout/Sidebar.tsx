@@ -13,23 +13,22 @@ import { CreatePostModal } from "@/components/modals/CreatePostModal";
 const Sidebar = () => {
   const { currentUser } = useAuth();
   const [selectedNavItem , setSelectedNavItem] = useState<number>(0);  // mặc định chọn home (/feed);
-  
-  
+
   const svgIconHome: Array<JSX.Element> = [
-   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M12.6901 2.27629C12.3038 1.9079 11.6962 1.9079 11.3099 2.27629L2.30989 10.8585C2.11199 11.0472 2 11.3087 2 11.5822V21C2 21.5523 2.44772 22 3 22H10V17C10 15.8954 10.8954 15 12 15C13.1046 15 14 15.8954 14 17V22H21C21.5523 22 22 21.5523 22 21V11.5822C22 11.3087 21.888 11.0472 21.6901 10.8585L12.6901 2.27629ZM16 20H20V12.0104L12 4.38178L4 12.0104V20H8V17C8 14.7909 9.79086 13 12 13C14.2091 13 16 14.7909 16 17V20Z" fill="#0C1014"/>
-</svg> , 
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M12.6901 2.27629C12.3038 1.9079 11.6962 1.9079 11.3099 2.27629L2.30989 10.8585C2.11199 11.0472 2 11.3087 2 11.5822V21C2 21.5523 2.44772 22 3 22H9V17C9 15.8954 9.5 14 12 14C14.5 14 15 15.8954 15 17V22H21C21.5523 22 22 21.5523 22 21V11.5822C22 11.3087 21.888 11.0472 21.6901 10.8585L12.6901 2.27629Z" fill="#0C1014"/>
-</svg> 
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12.6901 2.27629C12.3038 1.9079 11.6962 1.9079 11.3099 2.27629L2.30989 10.8585C2.11199 11.0472 2 11.3087 2 11.5822V21C2 21.5523 2.44772 22 3 22H10V17C10 15.8954 10.8954 15 12 15C13.1046 15 14 15.8954 14 17V22H21C21.5523 22 22 21.5523 22 21V11.5822C22 11.3087 21.888 11.0472 21.6901 10.8585L12.6901 2.27629ZM16 20H20V12.0104L12 4.38178L4 12.0104V20H8V17C8 14.7909 9.79086 13 12 13C14.2091 13 16 14.7909 16 17V20Z" fill="#0C1014"/>
+    </svg> ,
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12.6901 2.27629C12.3038 1.9079 11.6962 1.9079 11.3099 2.27629L2.30989 10.8585C2.11199 11.0472 2 11.3087 2 11.5822V21C2 21.5523 2.44772 22 3 22H9V17C9 15.8954 9.5 14 12 14C14.5 14 15 15.8954 15 17V22H21C21.5523 22 22 21.5523 22 21V11.5822C22 11.3087 21.888 11.0472 21.6901 10.8585L12.6901 2.27629Z" fill="#0C1014"/>
+    </svg>
   ];
   const svgIconSearch : Array<JSX.Element> = [
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M15.7618 17.176C14.3145 18.3183 12.4869 19 10.5 19C5.80558 19 2 15.1944 2 10.5C2 5.80558 5.80558 2 10.5 2C15.1944 2 19 5.80558 19 10.5C19 12.4869 18.3183 14.3145 17.176 15.7618L21.6569 20.2426C22.0474 20.6332 22.0474 21.2663 21.6569 21.6569C21.2663 22.0474 20.6332 22.0474 20.2426 21.6569L15.7618 17.176ZM17 10.5C17 14.0899 14.0899 17 10.5 17C6.91015 17 4 14.0899 4 10.5C4 6.91015 6.91015 4 10.5 4C14.0899 4 17 6.91015 17 10.5Z" fill="#0C1014"/>
-</svg> , 
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M15.356 17.4773C13.9794 18.4371 12.3054 19 10.5 19C5.80558 19 2 15.1944 2 10.5C2 5.80558 5.80558 2 10.5 2C15.1944 2 19 5.80558 19 10.5C19 12.3054 18.4371 13.9794 17.4773 15.356L22.0104 19.8891C22.5962 20.4749 22.5962 21.4246 22.0104 22.0104C21.4246 22.5962 20.4749 22.5962 19.8891 22.0104L15.356 17.4773ZM16 10.5C16 13.5376 13.5376 16 10.5 16C7.46243 16 5 13.5376 5 10.5C5 7.46243 7.46243 5 10.5 5C13.5376 5 16 7.46243 16 10.5Z" fill="#0C1014"/>
-</svg>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M15.7618 17.176C14.3145 18.3183 12.4869 19 10.5 19C5.80558 19 2 15.1944 2 10.5C2 5.80558 5.80558 2 10.5 2C15.1944 2 19 5.80558 19 10.5C19 12.4869 18.3183 14.3145 17.176 15.7618L21.6569 20.2426C22.0474 20.6332 22.0474 21.2663 21.6569 21.6569C21.2663 22.0474 20.6332 22.0474 20.2426 21.6569L15.7618 17.176ZM17 10.5C17 14.0899 14.0899 17 10.5 17C6.91015 17 4 14.0899 4 10.5C4 6.91015 6.91015 4 10.5 4C14.0899 4 17 6.91015 17 10.5Z" fill="#0C1014"/>
+    </svg> ,
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M15.356 17.4773C13.9794 18.4371 12.3054 19 10.5 19C5.80558 19 2 15.1944 2 10.5C2 5.80558 5.80558 2 10.5 2C15.1944 2 19 5.80558 19 10.5C19 12.3054 18.4371 13.9794 17.4773 15.356L22.0104 19.8891C22.5962 20.4749 22.5962 21.4246 22.0104 22.0104C21.4246 22.5962 20.4749 22.5962 19.8891 22.0104L15.356 17.4773ZM16 10.5C16 13.5376 13.5376 16 10.5 16C7.46243 16 5 13.5376 5 10.5C5 7.46243 7.46243 5 10.5 5C13.5376 5 16 7.46243 16 10.5Z" fill="#0C1014"/>
+    </svg>
   ];
   const svgIconExplore = [
     <svg aria-label="Khám phá" fill="currentColor" height="24" role="img" viewBox="0 0 24 24" width="24"><title>Khám phá</title><polygon fill="none" points="13.941 13.953 7.581 16.424 10.06 10.056 16.42 7.585 13.941 13.953" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></polygon><polygon fill-rule="evenodd" points="10.06 10.056 13.949 13.945 7.581 16.424 10.06 10.056"></polygon><circle cx="12.001" cy="12.005" fill="none" r="10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></circle>
@@ -56,18 +55,18 @@ const Sidebar = () => {
   ];
   const svgIconProfile  :Array<JSX.Element> = [
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M7 10C7 7.23858 9.23858 5 12 5C14.7614 5 17 7.23858 17 10C17 12.7614 14.7614 15 12 15C9.23858 15 7 12.7614 7 10ZM12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7Z" fill="#0C1014"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM12 3C7.02944 3 3 7.02944 3 12C3 14.4418 3.97244 16.6565 5.55117 18.278C6.44278 16.9068 7.98848 16 9.74596 16H14.254C16.0115 16 17.5572 16.9068 18.4488 18.278C20.0276 16.6565 21 14.4418 21 12C21 7.02944 16.9706 3 12 3ZM16.8861 19.5594C16.3764 18.6301 15.3888 18 14.254 18H9.74596C8.61119 18 7.62357 18.6301 7.11384 19.5594C8.52097 20.4708 10.1987 21 12 21C13.8013 21 15.479 20.4708 16.8861 19.5594Z" fill="#0C1014"/>
-</svg>,
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M12 1C5.92487 1 1 5.92487 1 12C1 18.0751 5.92487 23 12 23C18.0751 23 23 18.0751 23 12C23 5.92487 18.0751 1 12 1ZM8 10C8 7.79086 9.79086 6 12 6C14.2091 6 16 7.79086 16 10C16 12.2091 14.2091 14 12 14C9.79086 14 8 12.2091 8 10ZM18 18.9251C17.7921 17.2767 16.3412 16 14.5824 16H9.41761C7.65876 16 6.20792 17.2767 6 18.9251C7.63339 20.2218 9.72282 21 12 21C14.2772 21 16.3666 20.2218 18 18.9251Z" fill="#0C1014"/>
-</svg>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M7 10C7 7.23858 9.23858 5 12 5C14.7614 5 17 7.23858 17 10C17 12.7614 14.7614 15 12 15C9.23858 15 7 12.7614 7 10ZM12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7Z" fill="#0C1014"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M1 12C1 5.92487 5.92487 1 12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12ZM12 3C7.02944 3 3 7.02944 3 12C3 14.4418 3.97244 16.6565 5.55117 18.278C6.44278 16.9068 7.98848 16 9.74596 16H14.254C16.0115 16 17.5572 16.9068 18.4488 18.278C20.0276 16.6565 21 14.4418 21 12C21 7.02944 16.9706 3 12 3ZM16.8861 19.5594C16.3764 18.6301 15.3888 18 14.254 18H9.74596C8.61119 18 7.62357 18.6301 7.11384 19.5594C8.52097 20.4708 10.1987 21 12 21C13.8013 21 15.479 20.4708 16.8861 19.5594Z" fill="#0C1014"/>
+    </svg>,
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1C5.92487 1 1 5.92487 1 12C1 18.0751 5.92487 23 12 23C18.0751 23 23 18.0751 23 12C23 5.92487 18.0751 1 12 1ZM8 10C8 7.79086 9.79086 6 12 6C14.2091 6 16 7.79086 16 10C16 12.2091 14.2091 14 12 14C9.79086 14 8 12.2091 8 10ZM18 18.9251C17.7921 17.2767 16.3412 16 14.5824 16H9.41761C7.65876 16 6.20792 17.2767 6 18.9251C7.63339 20.2218 9.72282 21 12 21C14.2772 21 16.3666 20.2218 18 18.9251Z" fill="#0C1014"/>
+    </svg>
 
 
   ]
   const iconNavItems = {
-    "Home" : svgIconHome, // array 
-    "Search" : svgIconSearch, 
+    "Home" : svgIconHome, // array
+    "Search" : svgIconSearch,
     "Explore": svgIconExplore,
     "Reel" : svgIconReel,
     "Message" : svgIconMessage,
@@ -76,18 +75,20 @@ const Sidebar = () => {
   }
   const navItems = [
     // mỗi icon là 1 array , khi click chuyển icon
-    { icon: iconNavItems.Home, label: "Home", path: "/feed" },
-    { icon: iconNavItems.Search, label: "Search", path: "/search" },
-    { icon: iconNavItems.Explore, label: "Explore", path: "/explore" },
+    { icon: iconNavItems.Home, label: "Trang chủ", path: "/feed" },
+    { icon: iconNavItems.Search, label: "Tìm kiếm", path: "/search" },
+    { icon: iconNavItems.Explore, label: "Khám phá", path: "/explore" },
     { icon: iconNavItems.Reel, label: "Reels", path: "/reels" },
-    { icon: iconNavItems.Message, label: "Messages", path: "/messages" },
-    { icon: iconNavItems.Notification, label: "Notifications", path: "/notifications" },
-    { icon: iconNavItems.Profile, label: "Profile", path: `/profile/${currentUser.username}` },
+    { icon: iconNavItems.Message, label: "Tin nhắn", path: "/messages" },
+    { icon: iconNavItems.Notification, label: "Thông báo", path: "/notifications" },
+    { icon: iconNavItems.Profile, label: "Trang cá nhân", path: `/profile/${currentUser.username}` },
   ];
-  
+
+
+
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-border h-screen p-4 sticky top-0 left-0 bg-background">
-      <div className="mb-8 px-2">
+    <aside className="hidden md:flex flex-[1] flex-col border-r border-border h-screen p-4 sticky top-0 left-0 bg-background">
+      <div className="py-6 px-2">
         <Link to="/feed" className="text-2xl font-bold flex items-center gap-2">
           <span className="hidden lg:block">
             <svg
@@ -131,7 +132,7 @@ const Sidebar = () => {
                   className="w-full justify-start flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
                 >
                   <PlusSquare className="h-6 w-6" />
-                  <span className="hidden lg:block text-lg">Create</span>
+                  <span className="hidden lg:block text-lg">Tạo</span>
                 </Button>
               </DialogTrigger>
               <CreatePostModal />

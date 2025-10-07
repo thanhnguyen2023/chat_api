@@ -2,11 +2,13 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { stories as mockStories } from '@/data/mock';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { customClass } from '@/styles/style';
 
 const StoryCarousel = () => {
+
   return (
-    <div className="border-b border-border pb-4 mb-4">
-      <ScrollArea className="w-full whitespace-nowrap">
+    <div className={`${customClass['combo-flex']} border-b border-border pb-4 mt-8 mb-4`}>
+      <ScrollArea className="w-[75%] whitespace-nowrap">
         <div className="flex space-x-4 p-2">
           {mockStories.map((story) => (
             <div key={story.id} className="flex flex-col items-center flex-shrink-0">

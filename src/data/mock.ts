@@ -90,10 +90,10 @@ const users: User[] = [
   generateUser('user4', 'emilyjones', 'Emily Jones', 4),
   generateUser('user5', 'michaelbrown', 'Michael Brown', 5),
   generateUser('user6', 'sarahdavis', 'Sarah Davis', 6),
-  generateUser('user7', 'davidwilson', 'David Wilson', 7),
-  generateUser('user8', 'oliviathomas', 'Olivia Thomas', 8),
-  generateUser('user9', 'chrislee', 'Chris Lee', 9),
-  generateUser('user10', 'sophiamartin', 'Sophia Martin', 10),
+  // generateUser('user7', 'davidwilson', 'David Wilson', 7),
+  // generateUser('user8', 'oliviathomas', 'Olivia Thomas', 8),
+  // generateUser('user9', 'chrislee', 'Chris Lee', 9),
+  // generateUser('user10', 'sophiamartin', 'Sophia Martin', 10),
 ];
 
 const currentUser: User = users[0]; // John Doe is the current user

@@ -23,9 +23,9 @@ const MainLayout = () => {
   return (
     <div>
       <div className="flex min-h-screen bg-background">
-        {!isMobile && <Sidebar />}
-        <main className="flex-1 pt-[56px] md:pt-0 pb-[72px] md:pb-0">
-          {isIndex ? (
+        <Sidebar />
+        <main className="flex-[4] pt-[56px] md:pt-0 pb-[72px] md:pb-0">
+          {/* {isIndex ? (
             <div className="min-h-screen flex items-center justify-center bg-gray-100">
               <div className="text-center">
                 <h1 className="text-4xl font-bold mb-4">Loading...</h1>
@@ -34,11 +34,10 @@ const MainLayout = () => {
                 </p>
               </div>
             </div>
-          ) : (
+          ) : ( */}
             <Outlet />
-          )}
+          {/* )} */}
         </main>
-        {!isMobile && <RightPanel />}
       </div>
       {isMobile && <BottomMobileNav />}
     </div>
