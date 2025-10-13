@@ -22,7 +22,7 @@ const LikeAnimation: React.FC<LikeAnimationProps> = ({ isLiked, onDoubleClick, c
     if (showHeart) {
       timer = setTimeout(() => {
         setShowHeart(false);
-      }, 1000); // Heart stays for 1 second
+      }, 1000); 
     }
     return () => clearTimeout(timer);
   }, [showHeart]);

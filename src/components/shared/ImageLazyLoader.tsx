@@ -9,13 +9,13 @@ interface ImageLazyLoaderProps {
 
 const ImageLazyLoader: React.FC<ImageLazyLoaderProps> = ({ src, alt, className }) => {
   const [loaded, setLoaded] = useState(false);
-
+  // custom image khá hay
   return (
     <div className={cn("relative w-full h-full", className)}>
       {!loaded && (
         <div className="absolute inset-0  bg-muted animate-pulse flex items-center justify-center text-muted-foreground">
           Loading...
-        </div>
+        </div>  
       )}
        <img
         src={src}

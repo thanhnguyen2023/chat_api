@@ -47,7 +47,7 @@ const MessageConversation = () => {
       };
       setMessages(prev => [...prev, newMsg]);
       setNewMessage('');
-      // In a real app, send this to backend
+
     }
   };
 

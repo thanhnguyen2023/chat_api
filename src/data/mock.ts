@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 
-// Helper to generate deterministic image URLs
+
 const getImage = (seed: number, width = 600, height = 600) => `https://picsum.photos/seed/${seed}/${width}/${height}`;
 const getAvatar = (seed: number) => `https://i.pravatar.cc/150?img=${seed}`;
 
@@ -86,10 +86,10 @@ const generateUser = (id: string, username: string, fullName: string, seed: numb
 const users: User[] = [
   generateUser('user1', 'johndoe', 'John Doe', 1),
   generateUser('user2', 'janedoe', 'Jane Doe', 2),
-  generateUser('user3', 'alexsmith', 'Alex Smith', 3),
-  generateUser('user4', 'emilyjones', 'Emily Jones', 4),
-  generateUser('user5', 'michaelbrown', 'Michael Brown', 5),
-  generateUser('user6', 'sarahdavis', 'Sarah Davis', 6),
+  // generateUser('user3', 'alexsmith', 'Alex Smith', 3),
+  // generateUser('user4', 'emilyjones', 'Emily Jones', 4),
+  // generateUser('user5', 'michaelbrown', 'Michael Brown', 5),
+  // generateUser('user6', 'sarahdavis', 'Sarah Davis', 6),
   // generateUser('user7', 'davidwilson', 'David Wilson', 7),
   // generateUser('user8', 'oliviathomas', 'Olivia Thomas', 8),
   // generateUser('user9', 'chrislee', 'Chris Lee', 9),

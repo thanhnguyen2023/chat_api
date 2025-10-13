@@ -9,8 +9,8 @@ const FeedPage = () => {
     const isMobile = useIsMobile();
 
     return (
-        <div className="flex flex-row">
-            <div className="flex-[3] min-w-0">
+        <div className="flex">
+            <div className="flex-[3] min-w-0 px-0 md:px-4 ">
                 <StoryCarousel />
                 <div className="space-y-6">
                     {mockPosts.map((post) => (

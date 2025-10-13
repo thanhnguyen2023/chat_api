@@ -27,10 +27,10 @@ export const CreatePostModal = () => {
       toast.error("Please select at least one image.");
       return;
     }
-    // In a real app, you'd upload images and post data to a backend
+
     console.log('New post data:', { imageFiles, caption, location });
     toast.success("Post created successfully! (Mock)");
-    // Reset form
+
     setImageFiles([]);
     setCaption('');
     setLocation('');

@@ -11,7 +11,7 @@ interface PostGridProps {
 
 const PostGrid: React.FC<PostGridProps> = ({ posts }) => {
   return (
-    <div className="grid grid-cols-3 gap-1 sm:gap-4">
+    <div className="grid grid-cols-3  ">
       {posts.map((post) => (
         <Dialog key={post.id}>
           <DialogTrigger asChild>

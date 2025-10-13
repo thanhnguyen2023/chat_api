@@ -24,7 +24,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post }) => {
     if (commentText.trim()) {
       console.log('Comment submitted:', commentText);
       setCommentText('');
-      // In a real app, you'd add this to mock data or send to backend
+ 
     }
   };
 

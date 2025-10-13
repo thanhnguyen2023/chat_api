@@ -1,0 +1,6 @@
+#field-input-account:focus + #placeholder-fake-account , #field-input-password:focus + #placeholder-fake-password{
+   top:0;
+   font-size: 9px;
+   transition: top 100ms linear ;
+}
+
