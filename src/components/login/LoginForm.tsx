@@ -1,18 +1,45 @@
 import { customClass } from "@/styles/style";
 import React, { useState } from "react";
 import ImageLazyLoader from "../shared/ImageLazyLoader";
-import "./LoginForm.css";
+import { useAPI } from "@/hooks/useApi";
+import { LoginApiRespone } from "@/types/User.type";
+import { useUserStore } from "@/stores/UserStore";
+import { toast } from "sonner";
+
 const LoginForm = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const handleSubmit = (e) => {
+  const [isFocusEmailInput, setIsFocusEmailInput] = useState<boolean>(false);
+  const [isFocusPassInput, setIsFocusPassInput] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false); 
+  const { post } = useAPI();
+  const { setUser } = useUserStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+    try {
+      const data: LoginApiRespone = await post("/api/auth/login", {
+        email: email,
+        password: password,
+      });
+      setUser({...data.data,access_token:data.token}); 
+      
+    } catch (error: any) {
+      toast.error("Đăng nhập thất bại", {
+        description: (
+          <span className="font-extrabold">
+            {error.message || "Lỗi gì đó rồi"}
+          </span>
+        ),
+        position: "top-center",
+      });
+    }
   };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-5">
       <div className="flex justify-around w-full max-w-5xl overflow-hidden shadow-sm">
-        <div className="hidden lg:flex w-[40%] ">
+        <div className="hidden lg:flex w-[40%]">
           <ImageLazyLoader alt="" src="/landing-3x.png" />
         </div>
 
@@ -35,19 +62,27 @@ const LoginForm = () => {
             ></i>
           </div>
 
-          <div className="space-y-3">
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            {/* Email input */}
             <div className="relative">
               <input
                 type="text"
                 placeholder=""
-                value={username}
+                value={email}
                 id="field-input-account"
-                onChange={(e) => setUsername(e.target.value)}
-                className=" w-full px-3 py-3 border border-gray-300 rounded bg-gray-50 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
+                onFocus={() => setIsFocusEmailInput(true)}
+                onBlur={() =>
+                  setIsFocusEmailInput(email !== "" ? true : false)
+                }
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full px-3 py-3 border border-gray-300 rounded bg-gray-50 text-sm focus:outline-none focus:border-gray-400 focus:bg-white`}
               />
               <span
-                id="placeholder-fake-account"
-                className="pointer-events-none absolute top-3 left-3 text-xs text-[rgb(115,115,115)]"
+                className={`${
+                  isFocusEmailInput
+                    ? "top-0 text-[9px]"
+                    : "top-3 left-3 text-xs"
+                } ease-linear duration-150 left-3 pointer-events-none absolute text-[rgb(115,115,115)]`}
               >
                 Số điện thoại, tên người dùng hoặc email
               </span>
@@ -55,28 +90,45 @@ const LoginForm = () => {
 
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"} 
                 placeholder=""
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 id="field-input-password"
-                className=" w-full px-3 py-3 border border-gray-300 rounded bg-gray-50 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
+                onFocus={() => setIsFocusPassInput(true)}
+                onBlur={() =>
+                  setIsFocusPassInput(password !== "" ? true : false)
+                }
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-3 border border-gray-300 rounded bg-gray-50 text-sm focus:outline-none focus:border-gray-400 focus:bg-white pr-14"
               />
               <span
-                id="placeholder-fake-password"
-                className="pointer-events-none absolute top-3 left-3 text-[rgb(115,115,115)]  text-xs"
+                className={`${
+                  isFocusPassInput
+                    ? "top-0 text-[9px]"
+                    : "top-3 left-3 text-xs"
+                } ease-linear duration-150 left-3 pointer-events-none absolute text-[rgb(115,115,115)]`}
               >
                 Mật khẩu
               </span>
+
+        
+              {password && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold border border-black px-2 rounded-sm hover:opacity-80"
+                >
+                  {showPassword ? "Ẩn" : "Hiện"}
+                </button>
+              )}
             </div>
 
             <button
-              onClick={handleSubmit}
               className="w-full py-3 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors mt-3"
             >
               Đăng nhập
             </button>
-          </div>
+          </form>
 
           <div className="flex items-center my-5">
             <div className="flex-1 h-px bg-gray-300"></div>
@@ -119,35 +171,3 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
-
-// <div>
-//     <main className={`${customClass["combo-flex"]}`}>
-//       {/* <div>
-//               <ImageLazyLoader src='landing-3x.png' alt=''  />
-//           </div> */}
-//       <div className="max-w-[350px]">
-//         <div>
-//           {/* icon */}
-//
-//         </div>
-//         <form>
-//           <div>
-//             <span>Số điện thoại, tên người dùng hoặc email</span>
-//             <input
-//             className="bg-[rgb(250,250,250,1)] w-full pt-[9px] pr-0 pb-[7px] pl-[8px] text-red-600"
-//               aria-label="Số điện thoại, tên người dùng hoặc email"
-//               aria-required="true"
-//               autoCapitalize="off"
-//               autoCorrect="off"
-//               maxLength={75}
-//               type="text"
-
-//               name="username"
-//             />
-//           </div>
-
-//           <div></div>
-//         </form>
-//       </div>
-//     </main>
-//   </div>
