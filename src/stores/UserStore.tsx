@@ -1,4 +1,4 @@
-import { UserState } from "@/types/User.type";
+import { User, UserState } from "@/types/User.type";
 import { create } from "zustand";
 
 export const useUserStore = create<UserState>((set) => ({
@@ -8,9 +8,9 @@ export const useUserStore = create<UserState>((set) => ({
   avatar_url: null,
   status: null,
   created_at: null,
-  access_token: null,
+  access_token: null, // field này đang hơi thừa , fix sau
   isAuthenticated: false,
-  setUser: (user) =>
+  setUser: (user : User) =>
     set((state) => {
       // console.log('---- data set user store' , JSON.stringify(user));
       return {

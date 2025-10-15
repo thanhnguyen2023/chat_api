@@ -9,7 +9,7 @@ export interface User {
 
 export interface UserState extends User {
   access_token: string;
-  isAuthenticated: false;
+  isAuthenticated: boolean;
   setUser: (user: Partial<UserState>) => void;
   clearUser: () => void;
 }

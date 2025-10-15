@@ -2,9 +2,10 @@ import { customClass } from "@/styles/style";
 import React, { useState } from "react";
 import ImageLazyLoader from "../shared/ImageLazyLoader";
 import { useAPI } from "@/hooks/useApi";
-import { LoginApiRespone } from "@/types/User.type";
 import { useUserStore } from "@/stores/UserStore";
 import { toast } from "sonner";
+import { LoginApiRespone } from "@/types/Api.type";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -14,16 +15,17 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false); 
   const { post } = useAPI();
   const { setUser } = useUserStore();
-
+  const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const data: LoginApiRespone = await post("/api/auth/login", {
+      const res: LoginApiRespone = await post("/api/auth/login", {
         email: email,
         password: password,
       });
-      setUser({...data.data,access_token:data.token}); 
-      
+      localStorage.setItem("token",res.data.token);
+      setUser({...res.data.user,access_token:res.data.token}); 
+      navigate('/');
     } catch (error: any) {
       toast.error("Đăng nhập thất bại", {
         description: (

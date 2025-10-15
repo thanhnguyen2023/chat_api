@@ -1,14 +1,8 @@
 import { useUserStore } from "@/stores/UserStore";
 import { server } from "@/utils/server";
 import { useCallback, useMemo } from "react";
-import { LoginApiRespone } from "@/types/User.type";
+import { ErrorAPI, LoginApiRespone } from "@/types/Api.type";
 
-type ErrorAPI = {
-  error: {
-    message: string;
-    details: string[];
-  };
-};
 
 export function useAPI() {
   const { setUser } = useUserStore();
@@ -26,7 +20,7 @@ export function useAPI() {
     [headers]
   );
 
-  const intercepterResponse = useCallback(
+  const intercepterResponse = useCallback( // auto lấy token mới khi hết hạn
     async (response: Response) => {
       if (response.status === 401) {
         const res = await fetch(baseUrl + "/api/user/refresh-token", {
@@ -38,8 +32,8 @@ export function useAPI() {
         }
 
         const data: LoginApiRespone = await res.json();
-        setUser(data.data);
-        setToken(data.token);
+        setUser(data.data.user);
+        setToken(data.data.token);
       }
     },
     [baseUrl, setUser, setToken]
@@ -53,7 +47,7 @@ export function useAPI() {
       });
 
       if (!res.ok) {
-        await intercepterResponse(res);
+        await intercepterResponse(res); 
         const errorAPI : ErrorAPI = await res.json();
         throw new Error(errorAPI.error.details[0]|| "API Error");
       }

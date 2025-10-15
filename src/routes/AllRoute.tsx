@@ -17,12 +17,13 @@ import Messages from "@/pages/Messages";
 import ReelsPage from "@/pages/Reels";
 import Search from "@/pages/Search";
 import { createBrowserRouter } from "react-router-dom";
+import ProtectRoute from "./ProtectRoute";
 
 const routes = createBrowserRouter(
     [
         {
             path:'/',
-            element: <MainLayout />,
+            element: <ProtectRoute> <MainLayout /></ProtectRoute>,
             children:[
                 {   
                     index:true,
