@@ -18,6 +18,7 @@ import ReelsPage from "@/pages/Reels";
 import Search from "@/pages/Search";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectRoute from "./ProtectRoute";
+import NotFound from "@/pages/NotFound";
 
 const routes = createBrowserRouter(
     [
@@ -60,6 +61,10 @@ const routes = createBrowserRouter(
         {
             path:'/login',
             element: <Login />
+        },
+        {
+            path:'*',
+            element : <NotFound />
         }
     ]
 );

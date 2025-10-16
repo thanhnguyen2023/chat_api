@@ -2,24 +2,25 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext';
+
 import { users as mockUsers } from '@/data/mock';
+import { useUserStore } from '@/stores/UserStore';
 
 const RightPanel = () => {
-  const { currentUser } = useAuth();
-  const suggestions = mockUsers.filter(user => user.id !== currentUser.id).slice(0, 5);
-  
+  const {username,avatar_url} = useUserStore();
+  const suggestions = mockUsers.filter(user => user.id !== '0').slice(0, 5);
+  console.log('Log RightPanel.tsx >> username : ' + username);
   return (
     <aside className="hidden lg:flex flex-col p-6 sticky top-0 right-0 pt-8 h-screen bg-background">
       <div className="flex items-center justify-between mb-6">
-        <Link to={`/profile/${currentUser.username}`} className="flex items-center gap-3">
+        <Link to={`/profile/${username}`} className="flex items-center gap-3">
           <Avatar className="h-14 w-14">
-            <AvatarImage src={currentUser.avatar} alt={`${currentUser.username}'s profile picture`} />
-            <AvatarFallback>{currentUser.username[0].toUpperCase()}</AvatarFallback>
+            <AvatarImage src={avatar_url} alt={`${username}'s profile picture`} />
+            <AvatarFallback>{username.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-sm">{currentUser.username}</p>
-            <p className="text-muted-foreground text-sm">{currentUser.fullName}</p>
+            <p className="font-semibold text-sm">{username}</p>
+            <p className="text-muted-foreground text-sm">{username}</p>
           </div>
         </Link>
         <Button variant="link" className="text-blue-500 text-xs font-semibold p-0 h-auto">

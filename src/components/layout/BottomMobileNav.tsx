@@ -2,13 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Home, Search, Compass, Video, Heart, PlusSquare, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthContext';
+// import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { CreatePostModal } from '@/components/modals/CreatePostModal';
+import { useUserStore } from '@/stores/UserStore';
 
 const BottomMobileNav = () => {
-  const { currentUser } = useAuth();
-
+  // const { currentUser } = useAuth();
+  const {username, avatar_url} = useUserStore();
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 p-3 md:hidden">
       <div className="container mx-auto flex justify-around items-center">
@@ -34,10 +35,10 @@ const BottomMobileNav = () => {
         <Link to="/reels" aria-label="Reels">
           <Video className="h-6 w-6" />
         </Link>
-        <Link to={`/profile/${currentUser.username}`} aria-label="Profile">
+        <Link to={`/profile/${username}`} aria-label="Profile">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={currentUser.avatar} alt={`${currentUser.username}'s profile picture`} />
-            <AvatarFallback>{currentUser.username[0].toUpperCase()}</AvatarFallback>
+            <AvatarImage src={avatar_url} alt={`${username}'s profile picture`} />
+            <AvatarFallback>{username.toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>
       </div>

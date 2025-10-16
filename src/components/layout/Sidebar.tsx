@@ -5,15 +5,16 @@ import {
   PlusSquare,
 } from "lucide-react";
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/AuthContext";
+// import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
+import { useUserStore } from "@/stores/UserStore";
 
 const Sidebar = () => {
-  const { currentUser } = useAuth();
+  // const { currentUser } = useAuth();
   const [selectedNavItem , setSelectedNavItem] = useState<number>(0);  // mặc định chọn home (/feed);
-
+  const {username} = useUserStore();
   // array[0] là icon nhạt  , array[1] icon đậm
 
   const svgIconHome: Array<JSX.Element> = [
@@ -83,7 +84,7 @@ const Sidebar = () => {
     { icon: iconNavItems.Reel, label: "Reels", path: "/reels" },
     { icon: iconNavItems.Message, label: "Tin nhắn", path: "/messages" },
     { icon: iconNavItems.Notification, label: "Thông báo", path: "/notifications" },
-    { icon: iconNavItems.Profile, label: "Trang cá nhân", path: `/profile/${currentUser.username}` },
+    { icon: iconNavItems.Profile, label: "Trang cá nhân", path: `/profile/${username}` },
   ];
 
 

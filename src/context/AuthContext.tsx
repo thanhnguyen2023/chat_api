@@ -1,26 +1,39 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { currentUser as mockCurrentUser, User } from '@/data/mock';
+import React, { useEffect, useState } from "react";
+import { useUserStore } from "@/stores/UserStore";
+import { useAPI } from "@/hooks/useApi";
+import { GetInfoApi } from "@/types/Api.type";
 
-interface AuthContextType {
-  currentUser: User;
-}
+// không là context gì cả , chỉ là component 
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { setUser, clearUser } = useUserStore();
+  const { get, setToken } = useAPI();
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+      try {
+        setToken(token);
+        const res: GetInfoApi = await get("/api/auth/me");
+        setUser({ ...res.data.user, isAuthenticated: true });
+      } catch (error) {
+        clearUser();
+        localStorage.removeItem("token");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser] = useState<User>(mockCurrentUser);
+    initAuth();
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ currentUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
-  return context;
+
+  return <>{children}</>;
 };
