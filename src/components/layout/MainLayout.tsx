@@ -11,19 +11,21 @@ const MainLayout = () => {
   const location = useLocation();
   console.log(location.pathname);
   const [isIndex, setIsIndex] = useState(true);
-  // useEffect(() => {
-  //   navigate("/feed");
-  // }, [navigate]);
+  const [isLocationChat, setIsLocationChat] = useState(false);
 
   useEffect(() => {
     if (!location.pathname.includes("index")) {
       setIsIndex(false);
     }
+    if(location.pathname.includes("messages")){
+      setIsLocationChat(true);
+    }
+    else setIsLocationChat(false);  
   }, [location]);
   return (
     <div>
       <div className="flex min-h-screen bg-background">
-        <Sidebar />
+        <Sidebar isLocationChat = {isLocationChat} />
         <main className="flex-[4] pt-[56px] md:pt-0 pb-[72px] md:pb-0">
           {/* {isIndex ? (
             <div className="min-h-screen flex items-center justify-center bg-gray-100">

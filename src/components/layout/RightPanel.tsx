@@ -20,7 +20,7 @@ const RightPanel = () => {
           </Avatar>
           <div>
             <p className="font-semibold text-sm">{username}</p>
-            <p className="text-muted-foreground text-sm">{username}</p>
+            {/* <p className="text-muted-foreground text-sm">{username}</p> */}
           </div>
         </Link>
         <Button variant="link" className="text-blue-500 text-xs font-semibold p-0 h-auto">

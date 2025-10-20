@@ -6,36 +6,43 @@ import { useUserStore } from "@/stores/UserStore";
 import { toast } from "sonner";
 import { LoginApiRespone } from "@/types/Api.type";
 import { useNavigate } from "react-router-dom";
+import { SpinnerCustom } from "../loading/Spinner";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isFocusEmailInput, setIsFocusEmailInput] = useState<boolean>(false);
   const [isFocusPassInput, setIsFocusPassInput] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false); 
+  const [isPostLoginForm, setIsPostLoginForm] = useState<boolean>(false); // trạng thái khi post login form
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const { post } = useAPI();
   const { setUser } = useUserStore();
   const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res: LoginApiRespone = await post("/api/auth/login", {
-        email: email,
-        password: password,
-      });
-      localStorage.setItem("token",res.data.token);
-      setUser({...res.data.user,access_token:res.data.token}); 
-      navigate('/');
-    } catch (error: any) {
-      toast.error("Đăng nhập thất bại", {
-        description: (
-          <span className="font-extrabold">
-            {error.message || "Lỗi gì đó rồi"}
-          </span>
-        ),
-        position: "top-center",
-      });
-    }
+    setIsPostLoginForm(true);
+    setTimeout(async function abc() {
+      try {
+        const res: LoginApiRespone = await post("/api/auth/login", {
+          email: email,
+          password: password,
+        });
+        localStorage.setItem("token", res.data.token);
+        setUser({ ...res.data.user, access_token: res.data.token });
+        setIsPostLoginForm(false);
+        navigate("/");
+      } catch (error: any) {
+        setIsPostLoginForm(false);
+        toast.error("Đăng nhập thất bại", {
+          description: (
+            <span className="font-extrabold">
+              {error.message || "Lỗi gì đó rồi"}
+            </span>
+          ),
+          position: "top-center",
+        });
+      }
+    },1500);
   };
 
   return (
@@ -68,14 +75,13 @@ const LoginForm = () => {
             {/* Email input */}
             <div className="relative">
               <input
-                type="text"
+                type="email"
                 placeholder=""
+                require={true}
                 value={email}
                 id="field-input-account"
                 onFocus={() => setIsFocusEmailInput(true)}
-                onBlur={() =>
-                  setIsFocusEmailInput(email !== "" ? true : false)
-                }
+                onBlur={() => setIsFocusEmailInput(email !== "" ? true : false)}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`w-full px-3 py-3 border border-gray-300 rounded bg-gray-50 text-sm focus:outline-none focus:border-gray-400 focus:bg-white`}
               />
@@ -92,7 +98,8 @@ const LoginForm = () => {
 
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"} 
+                type={showPassword ? "text" : "password"}
+                required={true}
                 placeholder=""
                 value={password}
                 id="field-input-password"
@@ -105,15 +112,12 @@ const LoginForm = () => {
               />
               <span
                 className={`${
-                  isFocusPassInput
-                    ? "top-0 text-[9px]"
-                    : "top-3 left-3 text-xs"
+                  isFocusPassInput ? "top-0 text-[9px]" : "top-3 left-3 text-xs"
                 } ease-linear duration-150 left-3 pointer-events-none absolute text-[rgb(115,115,115)]`}
               >
                 Mật khẩu
               </span>
 
-        
               {password && (
                 <button
                   type="button"
@@ -126,9 +130,10 @@ const LoginForm = () => {
             </div>
 
             <button
+              disabled={isPostLoginForm}
               className="w-full py-3 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors mt-3"
             >
-              Đăng nhập
+              {isPostLoginForm ? <SpinnerCustom /> : "Đăng nhập"}
             </button>
           </form>
 
