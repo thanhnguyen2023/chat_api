@@ -136,7 +136,6 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       })
 
       if (!isFriend && req.user.user_id !== Number.parseInt(userId)) {
-        // Ẩn thông tin nhạy cảm khi profile riêng tư
         userData = {
           user_id: user.user_id,
           username: user.username,
