@@ -4,9 +4,9 @@ import ImageLazyLoader from "../shared/ImageLazyLoader";
 import { useAPI } from "@/hooks/useApi";
 import { useUserStore } from "@/stores/UserStore";
 import { toast } from "sonner";
-import { LoginApiRespone } from "@/types/Api.type";
 import { useNavigate } from "react-router-dom";
 import { SpinnerCustom } from "../loading/Spinner";
+import { LoginApiRespone } from "@/types/api/User.api";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -77,7 +77,7 @@ const LoginForm = () => {
               <input
                 type="email"
                 placeholder=""
-                require={true}
+                required={true}
                 value={email}
                 id="field-input-account"
                 onFocus={() => setIsFocusEmailInput(true)}

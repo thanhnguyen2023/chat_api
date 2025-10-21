@@ -53,7 +53,7 @@ const routes = createBrowserRouter(
                 },
                  {   
                     path:"/messages/:username",
-                    element: <MessageConversation />
+                    element: <Messages />
                 },
             ]
 

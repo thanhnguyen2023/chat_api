@@ -1,7 +1,9 @@
 import { useUserStore } from "@/stores/UserStore";
+import { ErrorAPI } from "@/types/api/Error.api";
+import { LoginApiRespone } from "@/types/api/User.api";
 import { server } from "@/utils/server";
 import { useCallback, useMemo } from "react";
-import { ErrorAPI, LoginApiRespone } from "@/types/Api.type";
+
 
 
 export function useAPI() {

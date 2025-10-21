@@ -13,18 +13,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { customClass } from "@/styles/style";
 import { useUserStore } from "@/stores/UserStore";
-import { ApiConversationRespone, Conversation } from "@/types/Conversation.type";
+
 import { useAPI } from "../hooks/useApi";
+import MessageConversation from "./MessageConversation";
+import { ApiConversationRespone } from "@/types/api/Conversation.api";
+import { ConversationDto } from "@/types/dtos/Conversation.dto";
+
 
 const Messages = () => {
   const { username } = useParams();
   const { username: NameUserLogin , user_id } = useUserStore();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const access_token = localStorage.getItem("token");
   const { get, setToken } = useAPI();
-  const selectedConversation = mockConversations.find(
-    (c) => c.otherUser.username === username
-  );
+  // const selectedConversation = mockConversations.find(
+  //   (c) => c.otherUser.username === username
+  // );
+  const [selectedConversation , setSelectedConversation] = useState<number>(null);
   useEffect(() => {
     const getConversation = async () => {
       try {
@@ -33,9 +38,7 @@ const Messages = () => {
         // console.log(
         //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
         // );
-        console.log(
-          "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone.data.conversations)
-        );
+      
         setConversations(dataApiRespone.data.conversations);
       } catch (error) {
         console.log("Error pages/Message.tsx : " + error);
@@ -117,6 +120,9 @@ const Messages = () => {
                 className={`flex items-center gap-4 p-3 hover:bg-muted rounded-lg transition-colors ${
                   username === conversation.conversation_name? "bg-muted" : ""
                 }`}
+                onClick={() => {
+                  setSelectedConversation(conversation.conversation_id);
+                }}
               >
                 <Avatar className="h-12 w-12">
                   <AvatarImage
@@ -182,63 +188,7 @@ const Messages = () => {
             </div>
           </>
         ) : (
-          <div className="flex flex-col w-full h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={selectedConversation.otherUser.avatar}
-                    alt={selectedConversation.otherUser.username}
-                  />
-                  <AvatarFallback>
-                    {selectedConversation.otherUser.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="font-semibold">
-                  {selectedConversation.otherUser.username}
-                </p>
-              </div>
-            </div>
-
-            {/* Chat body */}
-            <div className="flex-1 p-6 overflow-y-auto bg-background">
-              <div className="space-y-4">
-                {selectedConversation.messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${
-                      msg.senderId === currentUser.id
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`px-4 py-2 rounded-2xl max-w-xs break-words ${
-                        msg.senderId === currentUser.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Input box */}
-            <div className="border-t border-border p-4">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="Nhắn tin..."
-                  className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <Button size="sm">Gửi</Button>
-              </div>
-            </div>
-          </div>
+         <MessageConversation conversation_id={selectedConversation} />
         )}
       </div>
     </div>
