@@ -15,12 +15,12 @@ router.get("/", authenticateToken, async (req, res) => {
     // Get conversations where user is a participant
     const { count, rows: conversations } = await Conversation.findAndCountAll({
       include: [
-        {
-          model: Participant,
-          as: "participants",
-          where: { user_id: req.user.user_id },
-          attributes: [],
-        },
+        // {
+        //   model: Participant,
+        //   as: "participants",
+        //   where: { user_id: req.user.user_id },
+        //   attributes: [],
+        // },
         {
           model: Participant,
           as: "participants",
@@ -60,7 +60,7 @@ router.get("/", authenticateToken, async (req, res) => {
         conversation_name: conv.conversation_name,
         is_group: conv.is_group,
         created_at: conv.created_at,
-        participants: conv.participant.length != 0 ? conv.participants.map((p) => p.user) : conv.participants.user,
+        participants: conv.participant?.length != 0 ? conv.participants.map((p) => p.user) : conv.participants.user,
         last_message: lastMessage
           ? {
               message_id: lastMessage.message_id,
