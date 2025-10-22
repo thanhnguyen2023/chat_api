@@ -1,3 +1,4 @@
+// entity gốc từ db
 export interface Message {
   message_id: number;
   conversation_id: number;

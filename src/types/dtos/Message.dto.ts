@@ -7,7 +7,7 @@ export type LastMessage = Pick<Message,'message_id'| 'content' | 'created_at'> &
 
 export type MessageDto = Message & {
     sender : Sender,
-     attachments: [],
+    attachments: [],
     statuses: [],
 }
 // data mẫu response /api/messages/conversation/1

@@ -19,26 +19,28 @@ import MessageConversation from "./MessageConversation";
 import { ApiConversationRespone } from "@/types/api/Conversation.api";
 import { ConversationDto } from "@/types/dtos/Conversation.dto";
 
-
 const Messages = () => {
   const { username } = useParams();
-  const { username: NameUserLogin , user_id } = useUserStore();
+  const { username: NameUserLogin, user_id } = useUserStore();
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const access_token = localStorage.getItem("token");
   const { get, setToken } = useAPI();
   // const selectedConversation = mockConversations.find(
   //   (c) => c.otherUser.username === username
   // );
-  const [selectedConversation , setSelectedConversation] = useState<number>(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<ConversationDto>(null);
   useEffect(() => {
     const getConversation = async () => {
       try {
         setToken(access_token);
-        const dataApiRespone:ApiConversationRespone = await get("/api/conversations");
+        const dataApiRespone: ApiConversationRespone = await get(
+          "/api/conversations"
+        );
         // console.log(
         //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
         // );
-      
+
         setConversations(dataApiRespone.data.conversations);
       } catch (error) {
         console.log("Error pages/Message.tsx : " + error);
@@ -48,7 +50,7 @@ const Messages = () => {
   }, []);
   return (
     <div className="flex border-t border-border h-screen overflow-hidden">
-      {/* Sidebar */}
+      {/* Sidebar Chat ( danh sách conversation) */}
       <div className="flex-[1] border-r border-border px-0 md:px-4  overflow-y-auto">
         <div className="flex justify-between min-h-[74px] pt-9 px-4 mb-4">
           <div className="flex items-center justify-between max-w-[200px]">
@@ -118,32 +120,47 @@ const Messages = () => {
                 to={`/messages/${conversation.conversation_name}`}
                 key={conversation.conversation_id}
                 className={`flex items-center gap-4 p-3 hover:bg-muted rounded-lg transition-colors ${
-                  username === conversation.conversation_name? "bg-muted" : ""
+                  username === conversation.conversation_name ? "bg-muted" : ""
                 }`}
                 onClick={() => {
-                  setSelectedConversation(conversation.conversation_id);
+                  setSelectedConversation(conversation);
                 }}
               >
                 <Avatar className="h-12 w-12">
-                  <AvatarImage
-                    src={conversation.conversation_name} // cần fix
-                    alt={`${conversation.conversation_name}'s avatar`}
-                  />
+                  {conversation.is_group ? (
+                    <AvatarImage
+                      src={conversation ? "" : ""} // cần fix
+                      alt={`${conversation.conversation_name}'s avatar`}
+                    />
+                  ) : (
+                    ""
+                  )}
                   <AvatarFallback>
-                    {conversation.conversation_name ? conversation.conversation_name.toUpperCase(): ""}
+                    {conversation.conversation_name
+                      ? conversation.conversation_name.toUpperCase()
+                      : ""}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">
-                    {conversation.conversation_name}
+                    {conversation.is_group // nếu là group thì lấy tên của group
+                      ? conversation.conversation_name
+                      : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
+                      ? conversation.participants[1].username
+                      : conversation.participants[0].username}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {/* {conversation.last_message.sender.user_id  === user_id
-                      ? "You: "
-                      : ""} */}
-                    {conversation.last_message ? conversation.last_message.content : ""}
+                    {conversation.last_message == null
+                      ? " Chưa có tin nhắn nào"
+                      : conversation.last_message.sender.user_id === user_id
+                      ? `Bạn: ${conversation.last_message.content}`
+                      : conversation.last_message.sender.username +
+                        ": " +
+                        conversation.last_message.content}
+                    {}
                   </p>
                 </div>
+
                 <p className="text-xs text-muted-foreground flex-shrink-0">
                   {/* {formatDistanceToNowStrict(
                     new Date(conversation.last_message.created_at),
@@ -188,7 +205,7 @@ const Messages = () => {
             </div>
           </>
         ) : (
-         <MessageConversation conversation_id={selectedConversation} />
+          <MessageConversation conversation={selectedConversation} />
         )}
       </div>
     </div>

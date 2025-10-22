@@ -5,7 +5,8 @@ import { useAPI } from "@/hooks/useApi";
 import { useLocation } from "react-router-dom";
 import { GetInfoApi } from "@/types/api/User.api";
 
-// không là context gì cả , chỉ là component 
+// không là context gì cả , chỉ là component
+// khả năng nên chuyển vào router (dùng BrowserRouterb bọc)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { setUser, clearUser , isAuthenticated} = useUserStore();
   const { get, setToken } = useAPI();

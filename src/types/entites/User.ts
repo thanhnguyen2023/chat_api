@@ -1,3 +1,4 @@
+// entity gốc từ db
 export interface User {
   user_id: number;
   username: string;

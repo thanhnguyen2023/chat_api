@@ -1,0 +1,8 @@
+1. mới đầu vào nên lưu access_token lấy từ LocalStoreage vào store state user , sau chỉ cần lấy từ store không lấy từ LocalStoreage
+(chưa làm)
+2. tìm cách xử lý các đoạn của file MessageConversation.tsx 
+ {conversation.is_group // nếu là group thì lấy tên của group
+                  ? conversation.conversation_name
+                  : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
+                  ? conversation.participants[1].username
+                  : conversation.participants[0].username} 
