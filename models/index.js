@@ -12,6 +12,22 @@ const Notification = require("./Notification")
 const BlockedUser = require("./BlockedUser")
 const GroupSetting = require("./GroupSetting")
 
+// Mình follow người khác
+User.belongsToMany(User, {
+  through: UserContact,
+  as: "Following", // mình đang theo dõi người khác
+  foreignKey: "user_id",
+  otherKey: "friend_id"
+})
+
+// Người khác follow mình
+User.belongsToMany(User, {
+  through: UserContact,
+  as: "Followers", // người khác đang theo dõi mình
+  foreignKey: "friend_id",
+  otherKey: "user_id"
+})  
+
 // Define associations
 const defineAssociations = () => {
   // User associations

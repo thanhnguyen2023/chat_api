@@ -5,6 +5,42 @@ const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
 
+// Get my profile
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    res.json({ data: req.user }) 
+  } catch (error) {
+    console.error("Get profile error:", error)
+    res.status(500).json({ error: { message: "Failed to get profile" } })
+  }
+})
+
+// Update my profile
+router.put("/me", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id
+    const { username, email, avatar_url, status, full_name, gender, is_private, bio } = req.body
+
+    await User.update(
+      { username, email, avatar_url, status, full_name, gender, is_private, bio },
+      { where: { user_id: userId } }
+)
+
+
+    const updatedUser = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    })
+
+    res.json({
+      message: "Profile updated successfully",
+      data: updatedUser,
+    })
+  } catch (error) {
+    console.error("Update profile error:", error)
+    res.status(500).json({ error: { message: "Failed to update profile" } })
+  }
+})
+
 // Get all users (with search and pagination)
 router.get("/", authenticateToken, async (req, res) => {
   try {
@@ -66,6 +102,125 @@ router.get("/", authenticateToken, async (req, res) => {
   }
 })
 
+// Lấy danh sách người follow mình
+router.get('/followers', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.user_id, {
+      include: [{ model: User, as: 'Followers', attributes: ['user_id', 'username', 'avatar_url'] }]
+    });
+    res.json(user.Followers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Lấy danh sách bạn bè 
+router.get('/friends', authenticateToken, async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const following = await UserContact.findAll({
+      where: { user_id: userId },
+      attributes: ['friend_id'],
+    });
+
+    const followingIds = following.map(f => f.friend_id);
+    if (followingIds.length === 0) return res.json([]);
+
+    const mutual = await UserContact.findAll({
+      where: {
+        user_id: followingIds,
+        friend_id: userId,
+      },
+      attributes: ['user_id'],
+    });
+
+    const mutualIds = mutual.map(m => m.user_id);
+    if (mutualIds.length === 0) return res.json([]);
+
+    const friends = await User.findAll({
+      where: { user_id: mutualIds },
+      attributes: ['user_id', 'username', 'avatar_url'],
+    });
+
+    res.json(friends);
+  } catch (err) {
+    console.error('Friends error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+//danh sách đề xuất bạn bè
+router.get("/suggestions", authenticateToken, async (req, res) => {
+  const userId = req.user.user_id;
+
+  try {
+    // Nếu có view_all=true thì bỏ phân trang
+    const viewAll = req.query.view_all === "true";
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = viewAll ? null : parseInt(req.query.limit) || 20;
+    const offset = limit ? (page - 1) * limit : 0;
+
+    const following = await UserContact.findAll({
+      where: { user_id: userId },
+      attributes: ["friend_id"],
+    });
+
+    const followingIds = following.map((f) => f.friend_id);
+    if (followingIds.length === 0) {
+      return res.json({
+        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } },
+      });
+    }
+
+    const friendsOfFollowing = await UserContact.findAll({
+      where: { user_id: followingIds },
+      attributes: ["friend_id"],
+    });
+
+    const candidateIds = friendsOfFollowing.map((f) => f.friend_id);
+
+    const excludeIds = [userId, ...followingIds];
+    const uniqueCandidateIds = [...new Set(candidateIds)].filter(
+      (id) => !excludeIds.includes(id)
+    );
+
+    if (uniqueCandidateIds.length === 0) {
+      return res.json({
+        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } },
+      });
+    }
+
+    const totalCount = uniqueCandidateIds.length;
+    const totalPages = limit ? Math.ceil(totalCount / limit) : 1;
+    const paginatedIds = limit
+      ? uniqueCandidateIds.slice(offset, offset + limit)
+      : uniqueCandidateIds;
+
+    const suggestions = await User.findAll({
+      where: { user_id: paginatedIds },
+      attributes: ["user_id", "username", "full_name", "avatar_url"],
+    });
+
+    res.json({
+      data: {
+        suggestions,
+        pagination: {
+          current_page: page,
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: limit || "all",
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Suggestions error:", err);
+    res.status(500).json({ error: "Failed to fetch friend suggestions" });
+  }
+});
+
+
 // Get user by ID
 router.get("/:userId", authenticateToken, async (req, res) => {
   try {
@@ -103,13 +258,10 @@ router.get("/:userId", authenticateToken, async (req, res) => {
   }
 })
 
-// Get user contacts/friends
+//danh sách mình theo dõi
 router.get("/me/contacts", authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 50 } = req.query
-    const offset = (Number.parseInt(page) - 1) * Number.parseInt(limit)
-
-    const { count, rows: contacts } = await UserContact.findAndCountAll({
+    const contacts = await UserContact.findAll({
       where: { user_id: req.user.user_id },
       include: [
         {
@@ -118,33 +270,23 @@ router.get("/me/contacts", authenticateToken, async (req, res) => {
           attributes: { exclude: ["password"] },
         },
       ],
-      limit: Number.parseInt(limit),
-      offset,
       order: [["created_at", "DESC"]],
-    })
+    });
 
     res.json({
-      data: {
-        contacts: contacts.map((contact) => ({
-          contact_id: contact.contact_id,
-          friend: contact.friend,
-          created_at: contact.created_at,
-        })),
-        pagination: {
-          current_page: Number.parseInt(page),
-          total_pages: Math.ceil(count / Number.parseInt(limit)),
-          total_count: count,
-          per_page: Number.parseInt(limit),
-        },
-      },
-    })
+      data: contacts.map((contact) => ({
+        contact_id: contact.contact_id,
+        friend: contact.friend,
+        created_at: contact.created_at,
+      })),
+    });
   } catch (error) {
-    console.error("Get contacts error:", error)
+    console.error("Get contacts error:", error);
     res.status(500).json({
       error: { message: "Failed to get contacts" },
-    })
+    });
   }
-})
+});
 
 // Add user to contacts
 router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
