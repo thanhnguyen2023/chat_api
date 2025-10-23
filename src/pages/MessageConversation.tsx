@@ -5,10 +5,9 @@ import { GetMessageInConversation } from "@/types/api/Message.api";
 import { MessageDto } from "@/types/dtos/Message.dto";
 import { ConversationDto } from "@/types/dtos/Conversation.dto";
 import { useUserStore } from "@/stores/UserStore";
-<<<<<<< HEAD
-=======
+
 import ChatSkeleton from "@/components/skeletons/ChatSkeleton";
->>>>>>> master
+
 
 type MessageConversationProps = {
   conversation: ConversationDto;
@@ -20,27 +19,16 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   const { get, setToken } = useAPI();
   const token = localStorage.getItem("token");
   const [messages, setMessages] = useState<MessageDto[]>([]);
-<<<<<<< HEAD
-=======
+
   const [isLoadingMessage, setIsLoadingMessage] = useState<boolean>(true);
->>>>>>> master
+
   useEffect(() => {
     setIsLoadingMessage(true);
     if (!conversation.conversation_id) return;
     const controller = new AbortController();
 
     const getMessageConversation = async () => {
-<<<<<<< HEAD
-      setToken(token);
-      const dataGetMessageApi: GetMessageInConversation = await get(
-        `/api/messages/conversation/${conversation.conversation_id}`
-      );
-      setMessages((pre) => [...pre, ...dataGetMessageApi.data.messages]); //
-      setMessages(dataGetMessageApi.data.messages);
-    };
-    getMessageConversation();
-  }, [conversation]);
-=======
+
       try {
         setToken(token); // token từ localstoreage , set vào header
 
@@ -67,7 +55,6 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
     };
   }, [conversation.conversation_id]);
 
->>>>>>> master
   const handleSend = () => {
     // if (message.trim()) {
     //   setMessages([
@@ -121,20 +108,17 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
         {conversation.is_group ? (
           ""
         ) : (
-<<<<<<< HEAD
-=======
+
           // hiện thị section trang cá nhân ( nếu là ở group thì không có)
->>>>>>> master
+
           <div className="flex flex-col  items-center py-6 border-gray-200">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-blue-400 p-1 mb-3">
               <div className="w-full h-full rounded-full bg-white p-1">
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-2xl">
                   <img
-<<<<<<< HEAD
-                    src={ 
-=======
+
                     src={
->>>>>>> master
+
                       conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy link người kia làm tiêu đề
                         ? conversation.participants[1].avatar_url
                         : conversation.participants[0].avatar_url
@@ -168,29 +152,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
         )}
 
         {/* danh sách tin nhắn */}
-<<<<<<< HEAD
-        <div className="flex-1 px-4 py-4 space-y-3">
-          {messages.map((msg) => (
-            <div
-              key={msg.message_id}
-              className={`flex ${
-                msg.sender.user_id === user_id ? "justify-end" : "justify-start"
-              }`}
-            >
-              {msg.sender.user_id != user_id && (
-                <div className="w-7 h-7 rounded-full ">
-                  <img src={msg.sender.avatar_url} className="w-7 h-7" />
-                </div>
-              )}
-              <div
-                className={`max-w-xs px-4 py-2 rounded-3xl ${
-                  msg.sender.user_id === user_id
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
-              >
-                <p className="text-sm">{msg.content}</p>
-=======
+
         {isLoadingMessage ? (
           <ChatSkeleton />
         ) : (
@@ -218,7 +180,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
                 >
                   <p className="text-sm">{msg.content}</p>
                 </div>
->>>>>>> master
+
               </div>
             ))}
           </div>
