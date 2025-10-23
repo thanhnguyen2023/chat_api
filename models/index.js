@@ -11,6 +11,8 @@ const UserContact = require("./UserContact")
 const Notification = require("./Notification")
 const BlockedUser = require("./BlockedUser")
 const GroupSetting = require("./GroupSetting")
+const Follow = require("./Follow")
+
 
 // Define associations
 const defineAssociations = () => {
@@ -23,6 +25,21 @@ const defineAssociations = () => {
   User.hasMany(Notification, { foreignKey: "user_id", as: "notifications" })
   User.hasMany(BlockedUser, { foreignKey: "user_id", as: "blockedUsers" })
   User.hasMany(BlockedUser, { foreignKey: "blocked_user_id", as: "blockedBy" })
+
+    // Follow associations
+  User.belongsToMany(User, {
+    as: "Followers",       // những người theo dõi tôi
+    through: Follow,
+    foreignKey: "following_id",
+    otherKey: "follower_id"
+  });
+
+  User.belongsToMany(User, {
+    as: "Followings",      // tôi đang theo dõi ai
+    through: Follow,
+    foreignKey: "follower_id",
+    otherKey: "following_id"
+  });
 
   // Conversation associations
   Conversation.hasMany(Message, { foreignKey: "conversation_id", as: "messages" })
@@ -78,4 +95,5 @@ module.exports = {
   Notification,
   BlockedUser,
   GroupSetting,
+  Follow,
 }

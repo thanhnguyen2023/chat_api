@@ -5,6 +5,42 @@ const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
 
+// Get my profile
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    res.json({ data: req.user }) 
+  } catch (error) {
+    console.error("Get profile error:", error)
+    res.status(500).json({ error: { message: "Failed to get profile" } })
+  }
+})
+
+// Update my profile
+router.put("/me", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user_id
+    const { username, email, avatar_url, status, full_name, gender, is_private, bio } = req.body
+
+    await User.update(
+      { username, email, avatar_url, status, full_name, gender, is_private, bio },
+      { where: { user_id: userId } }
+)
+
+
+    const updatedUser = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    })
+
+    res.json({
+      message: "Profile updated successfully",
+      data: updatedUser,
+    })
+  } catch (error) {
+    console.error("Update profile error:", error)
+    res.status(500).json({ error: { message: "Failed to update profile" } })
+  }
+})
+
 // Get all users (with search and pagination)
 router.get("/", authenticateToken, async (req, res) => {
   try {
@@ -89,9 +125,30 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       },
     })
 
+    // Check private profile
+    let userData = user.toJSON()
+    if (user.is_private) {
+      const isFriend = await UserContact.findOne({
+        where: {
+          user_id: req.user.user_id,
+          friend_id: userId,
+        },
+      })
+
+      if (!isFriend && req.user.user_id !== Number.parseInt(userId)) {
+        userData = {
+          user_id: user.user_id,
+          username: user.username,
+          avatar_url: user.avatar_url,
+          status: user.status,
+          is_private: true,
+        }
+      }
+    }
+
     res.json({
       data: {
-        user: user.toJSON(),
+        user: userData,
         is_blocked: !!isBlocked,
       },
     })
@@ -102,6 +159,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
     })
   }
 })
+
 
 // Get user contacts/friends
 router.get("/me/contacts", authenticateToken, async (req, res) => {
@@ -379,5 +437,6 @@ router.get("/me/blocked", authenticateToken, async (req, res) => {
     })
   }
 })
+
 
 module.exports = router
