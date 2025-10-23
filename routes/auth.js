@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models")
 const { validate, schemas } = require("../utils/validation")
 const { authenticateToken } = require("../middleware/auth")
-const { Op } = require("sequelize")
+
+const { Op } = require('sequelize')
 
 const router = express.Router()
 

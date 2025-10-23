@@ -68,6 +68,8 @@ const defineAssociations = () => {
 
   // Notification associations
   Notification.belongsTo(User, { foreignKey: "user_id", as: "user" })
+  Notification.belongsTo(User, { foreignKey: "actor_id", as: "actor" })
+  User.hasMany(Notification, { foreignKey: "actor_id", as: "actorNotifications" })
 
   // BlockedUser associations
   BlockedUser.belongsTo(User, { foreignKey: "user_id", as: "user" })

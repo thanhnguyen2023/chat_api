@@ -17,6 +17,7 @@ const userRoutes = require("./routes/users")
 const conversationRoutes = require("./routes/conversations")
 const messageRoutes = require("./routes/messages")
 const uploadRoutes = require("./routes/upload")
+const notificationRoutes = require("./routes/notifications")
 
 // Import socket handlers
 const socketHandler = require("./socket/socketHandler")
@@ -55,6 +56,7 @@ app.use("/api/users", userRoutes)
 app.use("/api/conversations", conversationRoutes)
 app.use("/api/messages", messageRoutes)
 app.use("/api/upload", uploadRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -105,7 +107,7 @@ async function startServer() {
     console.log("✅ Database synchronized successfully.")
 
     // Start server
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`)
       console.log(`📡 Socket.IO server ready`)
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`)
