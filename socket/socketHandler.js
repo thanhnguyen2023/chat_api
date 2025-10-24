@@ -94,15 +94,12 @@ const broadcastUserStatus = async (io, userId, status) => {
 }
 
 // Create notification helper
-const createNotification = async (userId, type, content, actorId = null, referenceType = null, referenceId = null) => {
+const createNotification = async (userId, type, content) => {
   try {
     const notification = await Notification.create({
       user_id: userId,
-      actor_id: actorId,
       type,
       content,
-      reference_type: referenceType,
-      reference_id: referenceId,
     })
     return notification
   } catch (error) {
@@ -264,21 +261,7 @@ const socketHandler = (io) => {
               ? `New message in ${conversation.conversation_name || "group chat"} from ${socket.user.username}`
               : `New message from ${socket.user.username}`
 
-            const notification = await createNotification(
-              participantId,
-              "new_message",
-              notificationContent,
-              socket.userId,
-              "message",
-              message.message_id
-            )
-
-            if (notification) {
-              const targetSocketId = activeUsers.get(participantId)
-              if (targetSocketId) {
-                io.to(targetSocketId).emit("new_notification", { notification })
-              }
-            }
+            await createNotification(participantId, "new_message", notificationContent)
           }
         }
 
