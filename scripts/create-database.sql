@@ -134,23 +134,3 @@ CREATE TABLE IF NOT EXISTS group_settings (
     INDEX idx_conversation_id (conversation_id),
     INDEX idx_setting_name (setting_name)
 );
-
--- thêm thuộc tính vào bảng user
-	ALTER TABLE users
-    ADD COLUMN full_name VARCHAR(100) AFTER username,
-    ADD COLUMN gender ENUM('male', 'female', 'other', 'unspecified') DEFAULT 'unspecified' AFTER full_name,
-    ADD COLUMN is_private BOOLEAN DEFAULT FALSE AFTER gender,
-    ADD COLUMN bio TEXT AFTER is_private;
-
--- thêm bảng flowing
-CREATE TABLE follows (
-    follow_id INT AUTO_INCREMENT PRIMARY KEY,
-    follower_id INT NOT NULL,
-    following_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (follower_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (following_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    UNIQUE KEY unique_follow (follower_id, following_id)
-);
-
-
