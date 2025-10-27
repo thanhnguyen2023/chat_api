@@ -23,63 +23,64 @@ import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import { toast } from "sonner";
 import { useIsMobile } from "../hooks/use-mobile";
 
-
 const Messages = () => {
   const { username } = useParams();
   const { username: NameUserLogin, user_id } = useUserStore();
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
-  const [isLoadingSidebarChat, setIsLoadingSidebarchat] =
-    useState<boolean>(true);
+  const [isLoadingSidebarChat, setIsLoadingSidebarchat] = useState<boolean>(true);
   const access_token = localStorage.getItem("token");
   const { get, setToken } = useAPI();
-  // const selectedConversation = mockConversations.find(
-  //   (c) => c.otherUser.username === username
-  // );
-
   const isMobile = useIsMobile();
+  const [selectedConversation, setSelectedConversation] = useState<ConversationDto>(null);
+  // console.log("Messages.tsx  | user_id " + user_id);
+  
+  
 
-  const [selectedConversation, setSelectedConversation] =
-    useState<ConversationDto>(null);
   useEffect(() => {
     const getConversation = async () => {
       try {
-        setToken(access_token);
-        const dataApiRespone: ApiConversationRespone = await get(
-          "/api/conversations"
-        );
         // console.log(
         //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
         // );
 
+        setToken(access_token);
+        const dataApiRespone: ApiConversationRespone = await get(
+          "/api/conversations"
+        );
         setConversations(dataApiRespone.data.conversations);
         setIsLoadingSidebarchat(false);
       } catch (error) {
-        toast.error("Error", error.message);
+        toast.error("Error", error.error.message);
         console.log("Error pages/Message.tsx : " + error);
       }
     };
     setTimeout(() => {
       getConversation();
-    }, 2000);
+    }, 1500);
   }, []);
   return (
     <div className="flex border-t border-border h-screen overflow-hidden">
       {/* Sidebar Chat ( danh sách conversation) */}
 
-
-      <div className={`${isMobile ? "max-w-[100px]" : "" } flex-[1] border-r border-border px-0 md:px-4  overflow-y-auto`}>
+      <div
+        className={`${
+          isMobile ? "max-w-[100px]" : ""
+        } flex-[1] border-r border-border px-0 md:px-4  overflow-y-auto`}
+      >
         {isLoadingSidebarChat ? (
           <SidebarSkeleton
             count={8}
-            className="flex flex-col h-full justify-around"
-
+            className="flex flex-col h-full justify-around overflow-hidden"
           />
         ) : (
-
           <div>
             {/* section tên và button edit */}
-            <div className={`${isMobile ? "justify-center" : "justify-between" } flex  min-h-[74px] pt-9 px-4 mb-4`}>
-              {isMobile ? (  
+            <div
+              className={`${
+                isMobile ? "justify-center" : "justify-between"
+              } flex  min-h-[74px] pt-9 px-4 mb-4`}
+            >
+              {isMobile ? (
                 // ở mobile thì ẩn tên , hiện button edit
                 ""
               ) : (
@@ -130,7 +131,11 @@ const Messages = () => {
             </div>
             {/* section search */}
             {/* ở mobile thì ẩn search bar */}
-            <div className={`${isMobile ? "hidden" : "" } flex items-center gap-2 bg-[whitesmoke] px-4 py-1 mb-4 rounded-full`}>
+            <div
+              className={`${
+                isMobile ? "hidden" : ""
+              } flex items-center gap-2 bg-[whitesmoke] px-4 py-1 mb-4 rounded-full`}
+            >
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
@@ -142,13 +147,11 @@ const Messages = () => {
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
                 <MessageSquare className="h-24 w-24 mb-4" />
-                <p className="text-lg font-semibold">No messages yet</p>
-                <p className="text-center">
-                  Start a conversation with your friends.
-                </p>
+                <p className="text-lg font-semibold">Chưa có tin nhắn nào</p>
+                <p className="text-center">Bắt đầu trò chuyện với bạn bè.</p>
               </div>
             ) : (
-              <div className= {`space-y-1`}>
+              <div className={`space-y-1`}>
                 {conversations.map((conversation) => (
                   <Link
                     to={`/messages/${conversation.conversation_name}`}
@@ -157,48 +160,72 @@ const Messages = () => {
                       username === conversation.conversation_name
                         ? "bg-muted"
                         : ""
-                    } ${isMobile ? "justify-center" : "" }` 
-                  }
+                    } ${isMobile ? "justify-center" : ""}`}
                     onClick={() => {
                       setSelectedConversation(conversation);
                     }}
                   >
-                    <Avatar className={`h-12 w-12`}>
-                      {conversation.is_group ? (
-                        <AvatarImage
-                          src={conversation ? "" : ""} // cần fix , api backend không có ảnh conversation
-                          alt={`${conversation.conversation_name}'s avatar`}
-                        />
-                      ) : (
-                        ""
-                      )}
+                    <Avatar className={`relative h-12 w-12 overflow-visible`}>
+                      <AvatarImage
+                        src={
+                          conversation.is_group
+                            ? ""
+                            : conversation.participants[0].user_id == user_id
+                            ? conversation.participants[1].avatar_url
+                            : conversation.participants[0].avatar_url
+                        } // cần fix , api backend không có ảnh conversation
+                        alt={`${conversation.conversation_name}'s avatar`}
+                      />
                       <AvatarFallback>
                         {conversation.conversation_name
-                          ? conversation.conversation_name.toUpperCase()
+                          ? conversation.conversation_name[0].toUpperCase()
                           : ""}
                       </AvatarFallback>
+                      {/* trạng thái online  */}
+                      {/* mặc định trạng thái online của group là online , nếu k là group thì check người bên kia */}
+
+                      <div
+                        className={`${
+                          conversation.is_group
+                            ? "bg-green-500 "
+                            : conversation.participants[0].user_id != user_id
+                            ? conversation.participants[0].status != "online"
+                              ? " bg-gray-500 "
+                              : " bg-green-500 "
+                            : conversation.participants[1].user_id != user_id
+                            ? conversation.participants[1].status != "online"
+                              ? " bg-gray-500 "
+                              : " bg-green-500 "
+                            : ""
+                        } absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full`}
+                      ></div>
                     </Avatar>
-                   {isMobile ? "" :  <div className="flex-1 min-w-0"> 
-                    {/* ở mobile thì chỉ hiện mỗi ảnh  */}
-                      <p className="font-semibold truncate">
-                        {conversation.is_group // nếu là group thì lấy tên của group
-                          ? conversation.conversation_name
-                          : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
-                          ? conversation.participants[1].username
-                          : conversation.participants[0].username}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {conversation.last_message == null
-                          ? " Chưa có tin nhắn nào"
-                          : conversation.last_message.sender.user_id === user_id
-                          ? `Bạn: ${conversation.last_message.content}`
-                          : conversation.last_message.sender.username +
-                            ": " +
-                            conversation.last_message.content}
-                        {}
-                      </p>
-                    </div>}
-{/* 
+                    {isMobile ? (
+                      ""
+                    ) : (
+                      <div className="flex-1 min-w-0">
+                        {/* ở mobile thì chỉ hiện mỗi ảnh  */}
+                        <p className="font-semibold truncate">
+                          {conversation.is_group // nếu là group thì lấy tên của group
+                            ? conversation.conversation_name
+                            : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
+                            ? conversation.participants[1].username
+                            : conversation.participants[0].username}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {conversation.last_message == null
+                            ? " Chưa có tin nhắn nào"
+                            : conversation.last_message.sender.user_id ===
+                              user_id
+                            ? `Bạn: ${conversation.last_message.content}`
+                            : conversation.last_message.sender.username +
+                              ": " +
+                              conversation.last_message.content}
+                          {}
+                        </p>
+                      </div>
+                    )}
+                    {/* 
                     <p className="text-xs text-muted-foreground flex-shrink-0">
                       {formatDistanceToNowStrict(
                     new Date(conversation.last_message.created_at),

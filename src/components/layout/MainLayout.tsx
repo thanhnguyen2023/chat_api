@@ -9,7 +9,7 @@ const MainLayout = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
-  console.log(location.pathname);
+  // console.log("<MainLayout.tsx> location: " ,location.pathname);
   const [isIndex, setIsIndex] = useState(true);
   const [isLocationChat, setIsLocationChat] = useState(false);
 

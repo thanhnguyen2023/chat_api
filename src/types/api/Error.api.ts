@@ -1,6 +1,6 @@
 export type ErrorAPI = {
   error: {
     message: string;
-    details: string[];
+    details?: string[];
   };
 };

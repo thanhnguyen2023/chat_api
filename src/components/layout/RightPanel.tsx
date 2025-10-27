@@ -9,7 +9,7 @@ import { useUserStore } from '@/stores/UserStore';
 const RightPanel = () => {
   const {username,avatar_url} = useUserStore();
   const suggestions = mockUsers.filter(user => user.id !== '0').slice(0, 5);
-  console.log('Log RightPanel.tsx >> username : ' + username);
+  // console.log('<RightPanel.tsx> username : ' + username);
   return (
     <aside className="hidden lg:flex flex-col p-6 sticky top-0 right-0 pt-8 h-screen bg-background">
       <div className="flex items-center justify-between mb-6">

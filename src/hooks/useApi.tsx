@@ -3,6 +3,7 @@ import { ErrorAPI } from "@/types/api/Error.api";
 import { LoginApiRespone } from "@/types/api/User.api";
 import { server } from "@/utils/server";
 import { useCallback, useMemo } from "react";
+import { toast } from "sonner";
 
 
 
@@ -29,8 +30,8 @@ export function useAPI() {
           credentials: "include",
         });
         if (!res.ok) {
-          const errorAPI = await res.json();
-          throw new Error(errorAPI.message || "Error: No Message");
+          const errorAPI: ErrorAPI = await res.json();
+          throw new Error(errorAPI.error.message || "Error: No Message");
         }
 
         const data: LoginApiRespone = await res.json();
@@ -43,18 +44,24 @@ export function useAPI() {
 
   const request = useCallback(
     async (endpoint: string, options: RequestInit) => {
-      const res = await fetch(baseUrl + endpoint, {
+     try {
+       const res = await fetch(baseUrl + endpoint, {
         ...options,
         headers,
       });
 
       if (!res.ok) {
         await intercepterResponse(res); 
+        
         const errorAPI : ErrorAPI = await res.json();
-        throw new Error(errorAPI.error.details[0]|| "API Error");
+        throw new Error(errorAPI.error.message|| "API Error");
       }
 
       return await res.json();
+     } catch (error) {
+      toast.error('Error', {description:error.message});
+      throw new Error(error);
+     }
     },
     [baseUrl, headers, intercepterResponse]
   );

@@ -6,14 +6,16 @@ import { useLocation } from "react-router-dom";
 import { GetInfoApi } from "@/types/api/User.api";
 
 // không là context gì cả , chỉ là component
+
 // khả năng nên chuyển vào router (dùng BrowserRouterb bọc)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { setUser, clearUser , isAuthenticated} = useUserStore();
   const { get, setToken } = useAPI();
   const [loading, setLoading] = useState(true);
 
-  console.log('AuthContext.tsx');
+  // console.log('<AuthContext.tsx> ');
   useEffect(() => {
+    setLoading(true);
     const initAuth = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -24,7 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setToken(token);
         const res: GetInfoApi = await get("/api/auth/me");
-        setUser({ ...res.data.user, isAuthenticated: true });
+        setUser({ ...res.data.user,isAuthenticated: true, access_token:token});
+        setLoading(false);
       } catch (error) {
         clearUser();
         localStorage.removeItem("token");
