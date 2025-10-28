@@ -36,7 +36,7 @@ const SOCKET_EVENTS = {
   NEW_NOTIFICATION: "new_notification",
 
   // Error events
-  ERROR: "error",
+  ERROR: "error"
 }
 
 /**

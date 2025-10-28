@@ -1,8 +1,9 @@
+/* eslint-disable no-console */
 const express = require("express")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
-const { Message, Attachment, Conversation, Participant } = require("../models")
+const { Message, Attachment, Conversation, Participant, Post, PostMedia, User } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
@@ -36,7 +37,7 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname)
     const name = path.basename(file.originalname, ext)
     cb(null, `${name}-${uniqueSuffix}${ext}`)
-  },
+  }
 })
 
 // File filter
@@ -51,9 +52,9 @@ const fileFilter = (req, file, cb) => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/plain",
+      "text/plain"
     ],
-    audio: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"],
+    audio: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"]
   }
 
   const allAllowedTypes = Object.values(allowedTypes).flat()
@@ -71,8 +72,8 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: Number.parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
-    files: 5, // Maximum 5 files per request
-  },
+    files: 5 // Maximum 5 files per request
+  }
 })
 
 // Helper function to determine file type
@@ -91,7 +92,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
 
     if (!files || files.length === 0) {
       return res.status(400).json({
-        error: { message: "No files uploaded" },
+        error: { message: "No files uploaded" }
       })
     }
 
@@ -106,11 +107,11 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
               model: Participant,
               as: "participants",
               where: { user_id: req.user.user_id },
-              attributes: [],
-            },
-          ],
-        },
-      ],
+              attributes: []
+            }
+          ]
+        }
+      ]
     })
 
     if (!message) {
@@ -122,7 +123,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
       })
 
       return res.status(404).json({
-        error: { message: "Message not found or access denied" },
+        error: { message: "Message not found or access denied" }
       })
     }
 
@@ -136,7 +137,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
       })
 
       return res.status(403).json({
-        error: { message: "Can only add attachments to your own messages" },
+        error: { message: "Can only add attachments to your own messages" }
       })
     }
 
@@ -149,7 +150,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
         message_id: messageId,
         file_url: fileUrl,
         file_type: getFileType(file.mimetype),
-        file_size: file.size,
+        file_size: file.size
       })
     })
 
@@ -163,9 +164,9 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
           file_url: attachment.file_url,
           file_type: attachment.file_type,
           file_size: attachment.file_size,
-          uploaded_at: attachment.uploaded_at,
-        })),
-      },
+          uploaded_at: attachment.uploaded_at
+        }))
+      }
     })
   } catch (error) {
     console.error("Upload error:", error)
@@ -182,18 +183,18 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
-          error: { message: "File too large" },
+          error: { message: "File too large" }
         })
       }
       if (error.code === "LIMIT_FILE_COUNT") {
         return res.status(400).json({
-          error: { message: "Too many files" },
+          error: { message: "Too many files" }
         })
       }
     }
 
     res.status(500).json({
-      error: { message: "Upload failed" },
+      error: { message: "Upload failed" }
     })
   }
 })
@@ -205,7 +206,7 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
 
     if (!file) {
       return res.status(400).json({
-        error: { message: "No file uploaded" },
+        error: { message: "No file uploaded" }
       })
     }
 
@@ -216,7 +217,7 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
       })
 
       return res.status(400).json({
-        error: { message: "Avatar must be an image" },
+        error: { message: "Avatar must be an image" }
       })
     }
 
@@ -231,8 +232,8 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
     res.json({
       message: "Avatar uploaded successfully",
       data: {
-        avatar_url: fullUrl,
-      },
+        avatar_url: fullUrl
+      }
     })
   } catch (error) {
     console.error("Avatar upload error:", error)
@@ -245,10 +246,100 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
     }
 
     res.status(500).json({
-      error: { message: "Avatar upload failed" },
+      error: { message: "Avatar upload failed" }
     })
   }
 })
+
+router.post(
+  "/post/:postId",
+  authenticateToken,
+  // Cho phép upload tối đa 10 files
+  upload.array("media", 10),
+  async (req, res) => {
+    try {
+      const { postId } = req.params
+      const files = req.files
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({
+          error: { message: "No files uploaded" }
+        })
+      }
+
+      // Kiểm tra xem post có tồn tại và có thuộc về user không
+      const post = await Post.findByPk(postId)
+      if (!post) {
+        // Xóa file đã tải lên nếu post không tồn tại
+        files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+        return res.status(404).json({ error: { message: "Post not found" } })
+      }
+
+      // Chỉ chủ sở hữu post mới được upload
+      if (post.user_id !== req.user.user_id) {
+        files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+        return res.status(403).json({
+          error: { message: "You are not authorized to upload to this post" }
+        })
+      }
+
+      // Lọc file (chỉ cho phép image/video cho post)
+      const validFiles = []
+      const invalidFiles = []
+      for (const file of files) {
+        const fileType = getFileType(file.mimetype)
+        if (fileType === "image" || fileType === "video") {
+          validFiles.push({ file, type: fileType })
+        } else {
+          invalidFiles.push(file)
+        }
+      }
+
+      // Xóa các file không hợp lệ
+      invalidFiles.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+
+      if (validFiles.length === 0) {
+        return res.status(400).json({
+          error: { message: "No valid image or video files uploaded." }
+        })
+      }
+
+      //  Tạo bản ghi PostMedia
+      const mediaPromises = validFiles.map((item, index) => {
+        const relativePath = path.relative(
+          path.join(__dirname, ".."),
+          item.file.path
+        )
+
+        const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+
+        const fullUrl = `${req.protocol}://${req.get("host")}${fileUrl}`
+
+        return PostMedia.create({
+          post_id: postId,
+          media_url: fullUrl,
+          media_type: item.type,
+          order_index: index + 1
+        })
+      })
+
+      const savedMedia = await Promise.all(mediaPromises)
+
+      res.status(201).json({
+        message: "Media uploaded successfully",
+        data: savedMedia
+      })
+
+    } catch (error) {
+      console.error("Post upload error:", error)
+      // Xóa file nếu có lỗi
+      if (req.files) {
+        req.files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+      }
+      res.status(500).json({ error: { message: "Upload failed" } })
+    }
+  }
+)
 
 // Get attachment by ID
 router.get("/attachment/:attachmentId", authenticateToken, async (req, res) => {
@@ -269,28 +360,28 @@ router.get("/attachment/:attachmentId", authenticateToken, async (req, res) => {
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
     res.json({
-      data: { attachment },
+      data: { attachment }
     })
   } catch (error) {
     console.error("Get attachment error:", error)
     res.status(500).json({
-      error: { message: "Failed to get attachment" },
+      error: { message: "Failed to get attachment" }
     })
   }
 })
@@ -314,25 +405,25 @@ router.delete("/attachment/:attachmentId", authenticateToken, async (req, res) =
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
     // Only message sender can delete attachments
     if (attachment.message.sender_id !== req.user.user_id) {
       return res.status(403).json({
-        error: { message: "Can only delete attachments from your own messages" },
+        error: { message: "Can only delete attachments from your own messages" }
       })
     }
 
@@ -346,12 +437,12 @@ router.delete("/attachment/:attachmentId", authenticateToken, async (req, res) =
     await attachment.destroy()
 
     res.json({
-      message: "Attachment deleted successfully",
+      message: "Attachment deleted successfully"
     })
   } catch (error) {
     console.error("Delete attachment error:", error)
     res.status(500).json({
-      error: { message: "Failed to delete attachment" },
+      error: { message: "Failed to delete attachment" }
     })
   }
 })
@@ -375,18 +466,18 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
@@ -404,8 +495,8 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
           file_size: attachment.file_size,
           uploaded_at: attachment.uploaded_at,
           exists: true,
-          actual_size: stats.size,
-        },
+          actual_size: stats.size
+        }
       })
     } catch (fileError) {
       res.json({
@@ -415,14 +506,14 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
           file_type: attachment.file_type,
           file_size: attachment.file_size,
           uploaded_at: attachment.uploaded_at,
-          exists: false,
-        },
+          exists: false
+        }
       })
     }
   } catch (error) {
     console.error("Get file info error:", error)
     res.status(500).json({
-      error: { message: "Failed to get file info" },
+      error: { message: "Failed to get file info" }
     })
   }
 })
@@ -432,24 +523,23 @@ router.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
-        error: { message: "File too large" },
+        error: { message: "File too large" }
       })
     }
     if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
-        error: { message: "Too many files" },
+        error: { message: "Too many files" }
       })
     }
     if (error.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
-        error: { message: "Unexpected file field" },
+        error: { message: "Unexpected file field" }
       })
     }
   }
-
   if (error.message.includes("File type") && error.message.includes("not allowed")) {
     return res.status(400).json({
-      error: { message: error.message },
+      error: { message: error.message }
     })
   }
 

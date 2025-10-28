@@ -1,4 +1,5 @@
 const Joi = require("joi")
+const postValidationSchemas = require("./postValidation")
 
 const schemas = {
   register: Joi.object({
@@ -33,6 +34,14 @@ const schemas = {
   updateMessageStatus: Joi.object({
     status: Joi.string().valid("sent", "delivered", "read").required(),
   }),
+
+  createPost: postValidationSchemas.createPost,
+  createComment: postValidationSchemas.createComment,
+
+  updatePost: postValidationSchemas.updatePost,
+  updateComment: postValidationSchemas.updateComment,
+
+  updatePostMedia: postValidationSchemas.updatePostMedia
 }
 
 const validate = (schema) => {
@@ -52,5 +61,5 @@ const validate = (schema) => {
 
 module.exports = {
   schemas,
-  validate,
+  validate
 }

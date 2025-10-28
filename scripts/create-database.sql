@@ -134,3 +134,75 @@ CREATE TABLE IF NOT EXISTS group_settings (
     INDEX idx_conversation_id (conversation_id),
     INDEX idx_setting_name (setting_name)
 );
+
+-- thêm thuộc tính vào bảng user
+	ALTER TABLE users
+    ADD COLUMN full_name VARCHAR(100) AFTER username,
+    ADD COLUMN gender ENUM('male', 'female', 'other', 'unspecified') DEFAULT 'unspecified' AFTER full_name,
+    ADD COLUMN is_private BOOLEAN DEFAULT FALSE AFTER gender,
+    ADD COLUMN bio TEXT AFTER is_private;
+
+-- Bảng đăng bài viết --
+CREATE TABLE IF NOT EXISTS posts (
+    post_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    caption TEXT,
+    location VARCHAR(255),
+    is_archived BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at)
+);
+
+-- Bảng media bài viết --
+CREATE TABLE IF NOT EXISTS post_media (
+    media_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    media_url VARCHAR(512) NOT NULL,
+    media_type ENUM('image', 'video') NOT NULL,
+    order_index INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    INDEX idx_post_id (post_id)
+);
+
+-- Bảng react --
+CREATE TABLE IF NOT EXISTS post_likes (
+    user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    INDEX idx_post_id (post_id)
+);
+
+-- Bảng bình luận --
+CREATE TABLE IF NOT EXISTS post_comments (
+    comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    parent_comment_id INT, -- Để hỗ trợ bình luận trả lời (nested comments)
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_comment_id) REFERENCES post_comments(comment_id) ON DELETE CASCADE,
+    INDEX idx_post_id (post_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_parent_comment_id (parent_comment_id)
+);
+
+-- Bảng lưu bài viết -- 
+CREATE TABLE IF NOT EXISTS post_saves (
+    user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);
