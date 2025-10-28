@@ -7,30 +7,30 @@ const Conversation = sequelize.define(
     conversation_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      autoIncrement: true,
+      autoIncrement: true
     },
     conversation_name: {
       type: DataTypes.STRING(100),
       allowNull: true,
       validate: {
-        len: [1, 100],
-      },
+        len: [1, 100]
+      }
     },
     is_group: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false,
+      defaultValue: false
     },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      allowNull: false,
-    },
+      allowNull: false
+    }
   },
   {
     tableName: "conversations",
-    timestamps: false,
-  },
+    timestamps: false
+  }
 )
 
 module.exports = Conversation
