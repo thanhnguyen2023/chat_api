@@ -134,7 +134,21 @@ router.post("/logout", authenticateToken, async (req, res) => {
   }
 })
 
-
+// Get current user profile
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      data: {
+        user: req.user.toJSON(),
+      },
+    })
+  } catch (error) {
+    console.error("Get profile error:", error)
+    res.status(500).json({
+      error: { message: "Failed to get user profile" },
+    })
+  }
+})
 
 // Refresh token
 router.post("/refresh", authenticateToken, async (req, res) => {
