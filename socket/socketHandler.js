@@ -276,7 +276,7 @@ const socketHandler = (io) => {
     socket.on("typing_start", async (data) => {
       try {
         const { conversation_id } = data
-
+        console.log("Server nhận typing_start từ", socket.userId, "data:", data)
         // Check if user is participant
         const participant = await Participant.findOne({
           where: {
@@ -291,11 +291,13 @@ const socketHandler = (io) => {
 
         // Broadcast typing indicator to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_typing", {
+        io.to(roomName).emit("user_typing", {
           user_id: socket.userId,
           username: socket.user.username,
           conversation_id,
         })
+        console.log("Server nhận user_typing từ", socket.userId, "data:", socket.user.username, conversation_id)
+
       } catch (error) {
         console.error("Typing start error:", error)
       }
@@ -319,8 +321,9 @@ const socketHandler = (io) => {
 
         // Broadcast stop typing to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_stopped_typing", {
+        io.to(roomName).emit("user_stopped_typing", {
           user_id: socket.userId,
+          username: socket.user.username,
           conversation_id,
         })
       } catch (error) {

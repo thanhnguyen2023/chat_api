@@ -2,7 +2,7 @@
 
 # dependencies
 /node_modules
-
+/uploads
 # next.js
 /.next/
 /out/
