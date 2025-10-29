@@ -1,6 +1,6 @@
 const express = require("express")
 const { Op } = require("sequelize")
-const { User, UserContact, BlockedUser } = require("../models")
+const { User, UserContact, BlockedUser,Conversation, Participant } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
@@ -124,6 +124,24 @@ router.get("/:userId", authenticateToken, async (req, res) => {
         blocked_user_id: userId,
       },
     })
+    
+    // ===== 🔍 Tìm conversation_id giữa 2 user =====
+    const conversation = await Conversation.findOne({
+      include: [
+        {
+          model: Participant,
+          as: "participants",
+          where: { user_id: req.user.user_id },
+        },
+        {
+          model: Participant,
+          as: "participants",
+          where: { user_id: userId },
+        },
+      ],
+    });
+
+    const conversationId = conversation ? conversation.conversation_id : null;
 
     // Check private profile
     let userData = user.toJSON()
@@ -150,6 +168,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       data: {
         user: userData,
         is_blocked: !!isBlocked,
+        conversation_id: conversationId,
       },
     })
   } catch (error) {
