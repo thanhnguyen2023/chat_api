@@ -94,7 +94,7 @@ const io = socketIo(server, {
 socketHandler(io)
 
 // Database connection and server start
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 8080
 
 async function startServer() {
   try {

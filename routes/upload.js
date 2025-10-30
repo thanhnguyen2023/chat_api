@@ -2,6 +2,7 @@ const express = require("express")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
+const { PythonShell } = require("python-shell")
 const { Message, Attachment, Conversation, Participant } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
 
@@ -83,19 +84,53 @@ const getFileType = (mimetype) => {
   return "document"
 }
 
+// === Function to check NSFW ===
+const checkNSFW = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const pythonPath = "python" // Nếu dùng virtualenv thì chỉnh lại thành đường dẫn cụ thể
+    const scriptPath = path.join(__dirname, "../open_nsfw/classify_nsfw.py")
+
+    const modelDef = path.join(__dirname, "../open_nsfw/nsfw_model/deploy.prototxt")
+    const pretrainedModel = path.join(__dirname, "../open_nsfw/nsfw_model/resnet_50_1by2_nsfw.caffemodel")
+
+    const options = {
+      mode: "text",
+      pythonPath,
+      pythonOptions: ["-u"],
+      args: [
+        "--model_def", modelDef,
+        "--pretrained_model", pretrainedModel,
+        filePath, // input_file phải nằm cuối
+      ],
+    }
+
+    PythonShell.run(scriptPath, options)
+      .then((results) => {
+        if (!results || results.length === 0) {
+          return resolve(0)
+        }
+        const lastLine = results[results.length - 1].trim()
+        const score = parseFloat(lastLine)
+        resolve(isNaN(score) ? 0 : score)
+      })
+      .catch((err) => {
+        console.error("PythonShellError:", err)
+        reject(err)
+      })
+  })
+}
+
+
 // Upload files and attach to message
 router.post("/message/:messageId", authenticateToken, upload.array("files", 5), async (req, res) => {
   try {
     const { messageId } = req.params
     const files = req.files
 
-    if (!files || files.length === 0) {
-      return res.status(400).json({
-        error: { message: "No files uploaded" },
-      })
-    }
+    if (!files || files.length === 0)
+      return res.status(400).json({ error: { message: "No files uploaded" } })
 
-    // Check if message exists and user has access
+    // Kiểm tra message có tồn tại không
     const message = await Message.findByPk(messageId, {
       include: [
         {
@@ -114,87 +149,57 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     })
 
     if (!message) {
-      // Clean up uploaded files if message not found
-      files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
-
-      return res.status(404).json({
-        error: { message: "Message not found or access denied" },
-      })
+      files.forEach((f) => fs.unlink(f.path, () => {}))
+      return res.status(404).json({ error: { message: "Message not found or access denied" } })
     }
 
-    // Only message sender can add attachments
     if (message.sender_id !== req.user.user_id) {
-      // Clean up uploaded files
-      files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
-
-      return res.status(403).json({
-        error: { message: "Can only add attachments to your own messages" },
-      })
+      files.forEach((f) => fs.unlink(f.path, () => {}))
+      return res.status(403).json({ error: { message: "Can only add attachments to your own messages" } })
     }
 
-    // Create attachment records
-    const attachmentPromises = files.map((file) => {
-      const relativePath = path.relative(path.join(__dirname, ".."), file.path)
-      const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+    // === 🧠 Check NSFW cho từng ảnh ===
+    for (const file of files) {
+      if (file.mimetype.startsWith("image/")) {
+        const nsfwScore = await checkNSFW(file.path)
+        console.log(`🧩 [${file.originalname}] NSFW Score =`, nsfwScore)
+        if (nsfwScore > 0.6) {
+          fs.unlink(file.path, () => {})
+          return res.status(400).json({
+              error: { message: "Ảnh có nội dung không phù hợp" },
+          })
+        }
+      }
+    }
 
-      return Attachment.create({
-        message_id: messageId,
-        file_url: fileUrl,
-        file_type: getFileType(file.mimetype),
-        file_size: file.size,
+    // === Lưu vào DB ===
+    const attachments = await Promise.all(
+      files.map((file) => {
+        const relativePath = path.relative(path.join(__dirname, ".."), file.path)
+        const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+        return Attachment.create({
+          message_id: messageId,
+          file_url: fileUrl,
+          file_type: getFileType(file.mimetype),
+          file_size: file.size,
+        })
       })
-    })
-
-    const attachments = await Promise.all(attachmentPromises)
+    )
 
     res.status(201).json({
-      message: "Files uploaded successfully",
-      data: {
-        attachments: attachments.map((attachment) => ({
-          attachment_id: attachment.attachment_id,
-          file_url: attachment.file_url,
-          file_type: attachment.file_type,
-          file_size: attachment.file_size,
-          uploaded_at: attachment.uploaded_at,
-        })),
-      },
+      message: "✅ Files uploaded successfully",
+      data: attachments.map((a) => ({
+        attachment_id: a.attachment_id,
+        file_url: a.file_url,
+        file_type: a.file_type,
+        file_size: a.file_size,
+        uploaded_at: a.uploaded_at,
+      })),
     })
   } catch (error) {
     console.error("Upload error:", error)
-
-    // Clean up uploaded files on error
-    if (req.files) {
-      req.files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
-    }
-
-    if (error instanceof multer.MulterError) {
-      if (error.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({
-          error: { message: "File too large" },
-        })
-      }
-      if (error.code === "LIMIT_FILE_COUNT") {
-        return res.status(400).json({
-          error: { message: "Too many files" },
-        })
-      }
-    }
-
-    res.status(500).json({
-      error: { message: "Upload failed" },
-    })
+    if (req.files) req.files.forEach((f) => fs.unlink(f.path, () => {}))
+    res.status(500).json({ error: { message: "Upload failed" } })
   }
 })
 
