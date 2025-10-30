@@ -23,14 +23,6 @@ router.get("/", authenticateToken, async (req, res) => {
       limit: Number.parseInt(limit),
       offset,
       order: [["created_at", "DESC"]],
-      include: [
-        {
-          model: User,
-          as: "actor",
-          attributes: ["user_id", "username", "avatar_url"],
-          required: false,
-        },
-      ],
     })
 
     res.json({
@@ -55,7 +47,7 @@ router.get("/", authenticateToken, async (req, res) => {
 // Create notification (internal use)
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const { user_id, actor_id, type, content, reference_type, reference_id } = req.body
+    const { user_id, type, content } = req.body
 
     // Validate input
     if (!user_id || !type || !content) {
@@ -72,23 +64,10 @@ router.post("/", authenticateToken, async (req, res) => {
       })
     }
 
-    // Check if actor exists (if provided)
-    if (actor_id) {
-      const actor = await User.findByPk(actor_id)
-      if (!actor) {
-        return res.status(404).json({
-          error: { message: "Actor not found" },
-        })
-      }
-    }
-
     const notification = await Notification.create({
       user_id,
-      actor_id: actor_id || null,
       type,
       content,
-      reference_type: reference_type || null,
-      reference_id: reference_id || null,
     })
 
     res.status(201).json({
