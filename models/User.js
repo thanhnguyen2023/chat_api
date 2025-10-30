@@ -19,44 +19,24 @@ const User = sequelize.define(
         isAlphanumeric: true,
       },
     },
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
     full_name: {
       type: DataTypes.STRING(100),
       allowNull: true,
     },
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
     gender: {
       type: DataTypes.ENUM("male", "female", "other", "unspecified"),
       defaultValue: "unspecified",
       allowNull: false,
     },
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
     is_private: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
     },
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
     bio: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,

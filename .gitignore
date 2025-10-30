@@ -3,10 +3,6 @@
 # dependencies
 /node_modules
 /uploads
-<<<<<<< HEAD
-
-=======
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
 # next.js
 /.next/
 /out/

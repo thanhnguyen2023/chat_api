@@ -8,11 +8,7 @@ const router = express.Router()
 // Get my profile
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-<<<<<<< HEAD
-    res.json({ data: req.user }) 
-=======
     res.json({ data: req.user })
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
   } catch (error) {
     console.error("Get profile error:", error)
     res.status(500).json({ error: { message: "Failed to get profile" } })
@@ -28,11 +24,7 @@ router.put("/me", authenticateToken, async (req, res) => {
     await User.update(
       { username, email, avatar_url, status, full_name, gender, is_private, bio },
       { where: { user_id: userId } }
-<<<<<<< HEAD
-)
-=======
     )
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
 
 
     const updatedUser = await User.findByPk(userId, {
@@ -313,12 +305,8 @@ router.get("/:userId", authenticateToken, async (req, res) => {
   }
 })
 
-<<<<<<< HEAD
-//danh sách mình theo dõi
-=======
 
 // Get user contacts/friends
->>>>>>> 14a0e58b6f099ca79b1943e664320abce496d146
 router.get("/me/contacts", authenticateToken, async (req, res) => {
   try {
     const contacts = await UserContact.findAll({
