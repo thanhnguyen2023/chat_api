@@ -94,15 +94,12 @@ const broadcastUserStatus = async (io, userId, status) => {
 }
 
 // Create notification helper
-const createNotification = async (userId, type, content, actorId = null, referenceType = null, referenceId = null) => {
+const createNotification = async (userId, type, content) => {
   try {
     const notification = await Notification.create({
       user_id: userId,
-      actor_id: actorId,
       type,
       content,
-      reference_type: referenceType,
-      reference_id: referenceId,
     })
     return notification
   } catch (error) {
@@ -264,21 +261,7 @@ const socketHandler = (io) => {
               ? `New message in ${conversation.conversation_name || "group chat"} from ${socket.user.username}`
               : `New message from ${socket.user.username}`
 
-            const notification = await createNotification(
-              participantId,
-              "new_message",
-              notificationContent,
-              socket.userId,
-              "message",
-              message.message_id
-            )
-
-            if (notification) {
-              const targetSocketId = activeUsers.get(participantId)
-              if (targetSocketId) {
-                io.to(targetSocketId).emit("new_notification", { notification })
-              }
-            }
+            await createNotification(participantId, "new_message", notificationContent)
           }
         }
 
@@ -293,7 +276,7 @@ const socketHandler = (io) => {
     socket.on("typing_start", async (data) => {
       try {
         const { conversation_id } = data
-
+        console.log("Server nhận typing_start từ", socket.userId, "data:", data)
         // Check if user is participant
         const participant = await Participant.findOne({
           where: {
@@ -308,11 +291,13 @@ const socketHandler = (io) => {
 
         // Broadcast typing indicator to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_typing", {
+        io.to(roomName).emit("user_typing", {
           user_id: socket.userId,
           username: socket.user.username,
           conversation_id,
         })
+        console.log("Server nhận user_typing từ", socket.userId, "data:", socket.user.username, conversation_id)
+
       } catch (error) {
         console.error("Typing start error:", error)
       }
@@ -336,8 +321,9 @@ const socketHandler = (io) => {
 
         // Broadcast stop typing to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_stopped_typing", {
+        io.to(roomName).emit("user_stopped_typing", {
           user_id: socket.userId,
+          username: socket.user.username,
           conversation_id,
         })
       } catch (error) {
@@ -486,10 +472,10 @@ const socketHandler = (io) => {
             status: p.user.status,
           }))
 
-        socket.emit("online_users", {
-          conversation_id,
-          online_users: onlineUsers,
-        })
+          socket.emit("online_users", {
+            conversation_id,
+            online_users: onlineUsers,
+          })
       } catch (error) {
         console.error("Get online users error:", error)
         socket.emit("error", { message: "Failed to get online users" })
