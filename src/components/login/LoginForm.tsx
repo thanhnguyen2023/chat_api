@@ -11,6 +11,7 @@ import { useGlobal } from "@/hooks/useGlobal";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
+  const {socket} = useGlobal();
   const [password, setPassword] = useState("");
   const [isFocusEmailInput, setIsFocusEmailInput] = useState<boolean>(false);
   const [isFocusPassInput, setIsFocusPassInput] = useState<boolean>(false);
@@ -31,6 +32,9 @@ const LoginForm = () => {
         localStorage.setItem("token", res.data.token);
         setUser({ ...res.data.user, access_token: res.data.token });
         setIsPostLoginForm(false);
+
+        socket.emit('update_status', {status : 'online'}) // đăng nhập thành công thì update status
+
         navigate("/");
       } catch (error: any) {
         setIsPostLoginForm(false);

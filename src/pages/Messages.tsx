@@ -22,38 +22,51 @@ import { ConversationDto } from "@/types/dtos/Conversation.dto";
 import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import { toast } from "sonner";
 import { useIsMobile } from "../hooks/use-mobile";
+import { useGlobal } from "@/hooks/useGlobal";
 
 const Messages = () => {
-  const { username } = useParams();
-  const { username: NameUserLogin, user_id } = useUserStore();
+  // const { username } = useParams();
+  const { username, user_id } = useUserStore();
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
-  const [isLoadingSidebarChat, setIsLoadingSidebarchat] = useState<boolean>(true);
+  const [isLoadingSidebarChat, setIsLoadingSidebarchat] =
+    useState<boolean>(true);
   const access_token = localStorage.getItem("token");
   const { get, setToken } = useAPI();
+  const { socket } = useGlobal();
   const isMobile = useIsMobile();
-  const [selectedConversation, setSelectedConversation] = useState<ConversationDto>(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<ConversationDto>(null);
   // console.log("Messages.tsx  | user_id " + user_id);
-  
-  
 
+  if (socket) {
+    socket.on("status_updated", (data) => {
+      console.log("có người mới online");
+      console.log("Messages.tsx || data : ", data);
+      getConversation();
+    });
+    socket.on("user_status_changed", (data) => {
+      console.log("có người mới online hoặc offline");
+      getConversation();
+    });
+  }
+  const getConversation = async () => {
+    try {
+      // console.log(
+      //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
+      // );
+
+      setToken(access_token);
+      const dataApiRespone: ApiConversationRespone = await get(
+        "/api/conversations"
+      );
+      setConversations(dataApiRespone.data.conversations);
+      setIsLoadingSidebarchat(false);
+    } catch (error) {
+      toast.error("Error", error.error.message);
+      console.log("Error pages/Message.tsx : " + error);
+    }
+  };
   useEffect(() => {
-    const getConversation = async () => {
-      try {
-        // console.log(
-        //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
-        // );
-
-        setToken(access_token);
-        const dataApiRespone: ApiConversationRespone = await get(
-          "/api/conversations"
-        );
-        setConversations(dataApiRespone.data.conversations);
-        setIsLoadingSidebarchat(false);
-      } catch (error) {
-        toast.error("Error", error.error.message);
-        console.log("Error pages/Message.tsx : " + error);
-      }
-    };
     setTimeout(() => {
       getConversation();
     }, 1500);
@@ -61,10 +74,9 @@ const Messages = () => {
   return (
     <div className="flex border-t border-border h-screen overflow-hidden">
       {/* Sidebar Chat ( danh sách conversation) */}
-
       <div
         className={`${
-          isMobile ? "max-w-[100px]" : ""
+          isMobile && "max-w-[100px]"
         } flex-[1] border-r border-border px-0 md:px-4  overflow-y-auto`}
       >
         {isLoadingSidebarChat ? (
@@ -80,12 +92,10 @@ const Messages = () => {
                 isMobile ? "justify-center" : "justify-between"
               } flex  min-h-[74px] pt-9 px-4 mb-4`}
             >
-              {isMobile ? (
+              {!isMobile && (
                 // ở mobile thì ẩn tên , hiện button edit
-                ""
-              ) : (
                 <div className="flex items-center justify-between max-w-[200px]">
-                  <h6 className="font-bold">{NameUserLogin}</h6>
+                  <h6 className="font-bold">{username}</h6>
                   <ChevronDown size={30} strokeWidth={2} />
                 </div>
               )}
@@ -133,7 +143,7 @@ const Messages = () => {
             {/* ở mobile thì ẩn search bar */}
             <div
               className={`${
-                isMobile ? "hidden" : ""
+                isMobile && "hidden"
               } flex items-center gap-2 bg-[whitesmoke] px-4 py-1 mb-4 rounded-full`}
             >
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -160,7 +170,7 @@ const Messages = () => {
                       username === conversation.conversation_name
                         ? "bg-muted"
                         : ""
-                    } ${isMobile ? "justify-center" : ""}`}
+                    } ${isMobile && "justify-center"}`}
                     onClick={() => {
                       setSelectedConversation(conversation);
                     }}
@@ -225,13 +235,14 @@ const Messages = () => {
                         </p>
                       </div>
                     )}
-                    {/* 
-                    <p className="text-xs text-muted-foreground flex-shrink-0">
-                      {formatDistanceToNowStrict(
-                    new Date(conversation.last_message.created_at),
-                    { addSuffix: true }
-                  )}
-                    </p> */}
+
+                   {!isMobile &&  <p className="text-xs text-muted-foreground flex-shrink-0">
+                      {conversation.last_message != null &&
+                        formatDistanceToNowStrict(
+                          new Date(conversation.last_message.created_at),
+                          { addSuffix: true }
+                        )}
+                    </p>}
                   </Link>
                 ))}
               </div>

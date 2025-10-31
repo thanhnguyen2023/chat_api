@@ -1,3 +1,4 @@
+import { Attachment } from "../entites/Attachment";
 import { Message } from "../entites/Message";
 import { Sender } from "./User.dto";
 
@@ -7,7 +8,7 @@ export type LastMessage = Pick<Message,'message_id'| 'content' | 'created_at'> &
 
 export type MessageDto = Message & {
     sender : Sender,
-    attachments: [],
+    attachments: Attachment[] | [],
     statuses: [],
 }
 // data mẫu response /api/messages/conversation/1

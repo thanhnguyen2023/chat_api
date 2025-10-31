@@ -1,25 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { Phone, Video, Info, Smile, Mic, Image, Heart } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Phone,
+  Video,
+  Info,
+  Smile,
+  Mic,
+  Image,
+  Heart,
+  Send,
+  SendHorizontal,
+} from "lucide-react";
 import { useAPI } from "../hooks/useApi";
 import { GetMessageInConversation } from "@/types/api/Message.api";
 import { MessageDto } from "@/types/dtos/Message.dto";
 import { ConversationDto } from "@/types/dtos/Conversation.dto";
 import { useUserStore } from "@/stores/UserStore";
-
+import EmojiPicker from "emoji-picker-react";
 import ChatSkeleton from "@/components/skeletons/ChatSkeleton";
-
+import { formatDistanceToNowStrict } from "date-fns";
+import { Attachment } from "@/types/entites/Attachment";
+import { server } from "@/utils/server";
+import ImageLazyLoader from "@/components/shared/ImageLazyLoader";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type MessageConversationProps = {
   conversation: ConversationDto;
 };
 
 const MessageConversation = ({ conversation }: MessageConversationProps) => {
-  const [messageInput, setMessageInput] = useState("");
+  const [messageInput, setMessageInput] = useState(""); // message nhập
+  const divMessageInput = useRef<HTMLDivElement>();
   const { user_id } = useUserStore(); // user đăng nhập
   const { get, setToken } = useAPI();
   const token = localStorage.getItem("token");
   const [messages, setMessages] = useState<MessageDto[]>([]);
-
+  // const [isSelectOpenEmoji, setIsSelectOpenEmoji] = useState<boolean>(false);
   const [isLoadingMessage, setIsLoadingMessage] = useState<boolean>(true);
 
   useEffect(() => {
@@ -28,7 +47,6 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
     const controller = new AbortController();
 
     const getMessageConversation = async () => {
-
       try {
         setToken(token); // token từ localstoreage , set vào header
 
@@ -38,8 +56,9 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
         );
 
         setMessages(dataGetMessageApi.data.messages);
+
         setIsLoadingMessage(false);
-      } catch (error: any) {
+      } catch (error) {
         if (error.name === "AbortError") {
           console.log("Request bị hủy");
         }
@@ -56,22 +75,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   }, [conversation.conversation_id]);
 
   const handleSend = () => {
-    // if (message.trim()) {
-    //   setMessages([
-    //     ...messages,
-    //     {
-    //       id: messages.length + 1,
-    //       text: message,
-    //       sender: "user",
-    //       time: new Date().toLocaleTimeString("en-US", {
-    //         hour: "2-digit",
-    //         minute: "2-digit",
-    //         hour12: false,
-    //       }),
-    //     },
-    //   ]);
-    //   setMessage("");
-    // }
+
   };
 
   return (
@@ -105,10 +109,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
       </div>
 
       <div className="h-[90%]  overflow-y-auto">
-        {conversation.is_group ? (
-          ""
-        ) : (
-
+        {conversation.is_group && (
           // hiện thị section trang cá nhân ( nếu là ở group thì không có)
 
           <div className="flex flex-col  items-center py-6 border-gray-200">
@@ -116,9 +117,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
               <div className="w-full h-full rounded-full bg-white p-1">
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-2xl">
                   <img
-
                     src={
-
                       conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy link người kia làm tiêu đề
                         ? conversation.participants[1].avatar_url
                         : conversation.participants[0].avatar_url
@@ -158,29 +157,82 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
         ) : (
           <div className="flex-1 px-4 py-4 space-y-3">
             {messages.map((msg) => (
-              <div
-                key={msg.message_id}
-                className={`flex ${
-                  msg.sender.user_id === user_id
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
-                {msg.sender.user_id != user_id && (
-                  <div className="w-7 h-7 rounded-full ">
-                    <img src={msg.sender.avatar_url} className="w-7 h-7" />
-                  </div>
-                )}
+              <div>
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-3xl ${
+                  key={msg.message_id}
+                  className={`flex ${
                     msg.sender.user_id === user_id
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
+                      ? "justify-end"
+                      : "justify-start"
+                  } mb-3`}
                 >
-                  <p className="text-sm">{msg.content}</p>
-                </div>
+                  {msg.sender.user_id != user_id && (
+                    <div className="w-7 h-7 rounded-full ">
+                      <img src={msg.sender.avatar_url} className="w-7 h-7" />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-3xl ${
+                      msg.sender.user_id === user_id
+                        ? "bg-[#1e5bf7] text-white"
+                        : "bg-[rgb(240,240,240)] text-gray-900"
+                    }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
 
+                    <p
+                      className={`text-[10px] italic ${
+                        msg.sender.user_id === user_id
+                          ? "text-right text-gray-300"
+                          : "text-left text-[#999]"
+                      } `}
+                    >
+                      {formatDistanceToNowStrict(msg.created_at, {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </div>
+                </div>
+                {msg.attachments.length != 0 &&
+                  msg.attachments.map((file: Attachment) => {
+                    // console.log(`abc ${server.baseUrlResource}${file.file_url}`);
+                    return (
+                      <div
+                        key={msg.message_id}
+                        className={`flex ${
+                          msg.sender.user_id === user_id
+                            ? "justify-end"
+                            : "justify-start"
+                        } mb-3`}
+                      >
+                        {file.file_type == "audio" && (
+                          <audio controls>
+                            <source
+                              src={`${server.baseUrlResource}${file.file_url}`}
+                            />
+                          </audio>
+                        )}
+                        {file.file_type == "image" && (
+                          <>
+                            <ImageLazyLoader
+                              src={`${server.baseUrlResource}${file.file_url}`}
+                              alt=""
+                              className="max-w-96"
+                            />
+                          </>
+                        )}
+                        {file.file_type == "video" && (
+                          <>
+                            <video
+                              src={`${server.baseUrlResource}${file.file_url}`}
+                              controls
+                              className="max-w-96"
+                            />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             ))}
           </div>
@@ -189,29 +241,58 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
 
       {/* Input  */}
       <div className="px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Smile className="w-6 h-6 text-gray-700" />
+        <div className="flex items-center relative gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="p-2 hover:bg-gray-100 rounded-full">
+                <Smile className="w-6 h-6 text-gray-700" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="!h-200px">
+              <EmojiPicker
+                lazyLoadEmojis={true}
+                onEmojiClick={(dataEmoji) => {
+                  setMessageInput((pre) => pre + dataEmoji.emoji);
+                }}
+                className="!h-[400px] !w-full"
+              />
+            </PopoverContent>
+          </Popover>
+          <button className={`${messageInput ? "w-0" : "p-2"}  hover:bg-gray-100 rounded-full`}>
+            <Mic className={`${messageInput ? "w-0 translate-x-[-35px]" : "w-6 translate-x-0"}  transition-all duration-300  h-6 text-gray-700`}/>
           </button>
-          <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-2">
-            <input
-              type="text"
+          <button className={`${messageInput ? "w-0" : "p-2"} hover:bg-gray-100 rounded-full`}>
+            <Image className={`${messageInput ? "w-0 translate-x-[-35px]" : "w-6 translate-x-0"} transition-all duration-300  h-6 text-gray-700`} />
+          </button>
+          <div className="flex-1 flex items-center max-h-32 overflow-y-auto bg-gray-100 rounded-[20px] px-4 py-2">
+            <textarea
               placeholder="Nhắn tin..."
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 bg-transparent outline-none text-sm"
+              className="flex-1 break-words whitespace-pre-wrap over bg-transparent outline-none text-sm"
             />
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Mic className="w-6 h-6 text-gray-700" />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Image className="w-6 h-6 text-gray-700" />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Heart className="w-6 h-6 text-gray-700" />
-          </button>
+
+          {!messageInput ? (
+            <button className="p-2 hover:bg-gray-100 rounded-full">
+              <Heart className="w-6 h-6 text-gray-700" />
+            </button>
+          ) : (
+            <button className="p-2 hover:bg-gray-100 rounded-full">
+              <svg
+                height="20px"
+                viewBox="0 0 24 24"
+                width="20px"
+              >
+                <title>Nhấn Enter để gửi</title>
+                <path
+                  d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 C22.8132856,11.0605983 22.3423792,10.4322088 21.714504,10.118014 L4.13399899,1.16346272 C3.34915502,0.9 2.40734225,1.00636533 1.77946707,1.4776575 C0.994623095,2.10604706 0.8376543,3.0486314 1.15159189,3.99121575 L3.03521743,10.4322088 C3.03521743,10.5893061 3.34915502,10.7464035 3.50612381,10.7464035 L16.6915026,11.5318905 C16.6915026,11.5318905 17.1624089,11.5318905 17.1624089,12.0031827 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z"
+                  fill="var(--chat-composer-button-color)"
+                ></path>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

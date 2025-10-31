@@ -51,7 +51,7 @@ export function useAPI() {
       });
 
       if (!res.ok) {
-        await intercepterResponse(res); 
+        // await intercepterResponse(res); 
         
         const errorAPI : ErrorAPI = await res.json();
         throw new Error(errorAPI.error.message|| "API Error");
