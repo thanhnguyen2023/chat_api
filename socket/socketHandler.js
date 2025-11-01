@@ -475,6 +475,7 @@ const socketHandler = (io) => {
           socket.emit("online_users", {
             conversation_id,
             online_users: onlineUsers,
+
           })
       } catch (error) {
         console.error("Get online users error:", error)

@@ -5,7 +5,7 @@ const socketIo = require("socket.io")
 const cors = require("cors")
 const helmet = require("helmet")
 const rateLimit = require("express-rate-limit")
-// const path = require("path")
+const path = require("path")
 
 // Import database and models
 const sequelize = require("./config/sequelize")
@@ -48,8 +48,7 @@ const limiter = rateLimit({
 app.use("/api/", limiter)
 
 // Static files for uploads
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")))
-
+app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')))
 // Routes
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
