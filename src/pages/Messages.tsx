@@ -40,12 +40,12 @@ const Messages = () => {
 
   if (socket) {
     socket.on("status_updated", (data) => {
-      console.log("có người mới online");
-      console.log("Messages.tsx || data : ", data);
+      // console.log("có người mới online");
+      // console.log("Messages.tsx || data : ", data);
       getConversation();
     });
     socket.on("user_status_changed", (data) => {
-      console.log("có người mới online hoặc offline");
+      // console.log("có người mới online hoặc offline");
       getConversation();
     });
   }

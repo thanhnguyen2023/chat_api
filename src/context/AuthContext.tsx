@@ -4,15 +4,16 @@ import { useAPI } from "@/hooks/useApi";
 
 import { useLocation } from "react-router-dom";
 import { GetInfoApi } from "@/types/api/User.api";
+import { useGlobal } from "@/hooks/useGlobal";
 
 // không là context gì cả , chỉ là component
 
 // khả năng nên chuyển vào router (dùng BrowserRouterb bọc)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { setUser, clearUser , isAuthenticated} = useUserStore();
+  const { setUser, clearUser, isAuthenticated } = useUserStore();
   const { get, setToken } = useAPI();
   const [loading, setLoading] = useState(true);
-
+  // const { socket } = useGlobal();
   // console.log('<AuthContext.tsx> ');
   useEffect(() => {
     setLoading(true);
@@ -26,8 +27,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setToken(token);
         const res: GetInfoApi = await get("/api/auth/me");
-        setUser({ ...res.data.user,isAuthenticated: true, access_token:token});
+        setUser({
+          ...res.data.user,
+          isAuthenticated: true,
+          access_token: token,
+        });
         setLoading(false);
+        // socket.emit("update_status", { status: "online" });
       } catch (error) {
         clearUser();
         localStorage.removeItem("token");
@@ -40,7 +46,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated]);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return <>{children}</>;

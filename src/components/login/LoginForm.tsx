@@ -33,7 +33,7 @@ const LoginForm = () => {
         setUser({ ...res.data.user, access_token: res.data.token });
         setIsPostLoginForm(false);
 
-        socket.emit('update_status', {status : 'online'}) // đăng nhập thành công thì update status
+        // socket.emit('update_status', {status : 'online'}) // đăng nhập thành công thì update status (không cần nữa)
 
         navigate("/");
       } catch (error: any) {
