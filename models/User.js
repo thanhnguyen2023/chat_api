@@ -10,42 +10,47 @@ const User = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+
     username: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
       validate: {
         len: [3, 50],
         isAlphanumeric: true,
       },
     },
+
     full_name: {
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+
     gender: {
       type: DataTypes.ENUM("male", "female", "other", "unspecified"),
       defaultValue: "unspecified",
       allowNull: false,
     },
+
     is_private: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
     },
+
     bio: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
       validate: {
         isEmail: true,
         len: [1, 100],
       },
     },
+
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
@@ -53,6 +58,7 @@ const User = sequelize.define(
         len: [6, 255],
       },
     },
+
     avatar_url: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -60,11 +66,13 @@ const User = sequelize.define(
         isUrl: true,
       },
     },
+
     status: {
       type: DataTypes.ENUM("online", "offline", "busy"),
       defaultValue: "offline",
       allowNull: false,
     },
+
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -74,6 +82,7 @@ const User = sequelize.define(
   {
     tableName: "users",
     timestamps: false,
+
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {
@@ -88,10 +97,14 @@ const User = sequelize.define(
         }
       },
     },
+
+    indexes: [
+      { unique: true, fields: ["username"] },
+      { unique: true, fields: ["email"] },
+    ],
   },
 )
 
-// Instance methods
 User.prototype.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password)
 }
