@@ -8,7 +8,7 @@ import { useGlobal } from "@/hooks/useGlobal";
 
 // không là context gì cả , chỉ là component
 
-// khả năng nên chuyển vào router (dùng BrowserRouterb bọc)
+// khả năng nên chuyển vào router (dùng BrowserRouter bọc)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { setUser, clearUser, isAuthenticated } = useUserStore();
   const { get, setToken } = useAPI();

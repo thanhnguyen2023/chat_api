@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, FormEvent } from "react";
 import {
   Phone,
   Video,
@@ -27,6 +27,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useGlobal } from "@/hooks/useGlobal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Message } from "@/types/entites/Message";
 
 type MessageConversationProps = {
   conversation: ConversationDto;
@@ -41,16 +47,17 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   const [isLoadingMessage, setIsLoadingMessage] = useState<boolean>(true);
   const [userTyping, setUserTyping] = useState<UserTyping>({});
   const [messages, setMessages] = useState<MessageDto[]>([]);
- 
   const MessageListAreaRef = useRef<HTMLDivElement>();
   const divMessageInput = useRef<HTMLDivElement>();
-  const { user_id } = useUserStore(); // user đăng nhập
+  const inputFile = useRef<HTMLInputElement>();
+  const { user_id, avatar_url, username } = useUserStore(); // user đăng nhập
 
-  const { get, setToken } = useAPI();
+  const { get, setToken, post } = useAPI();
   const { socket } = useGlobal();
   const token = localStorage.getItem("token");
+
   // const [isSelectOpenEmoji, setIsSelectOpenEmoji] = useState<boolean>(false);
- 
+
   useEffect(() => {
     if (!MessageListAreaRef.current) return;
     MessageListAreaRef.current.scrollTo({
@@ -59,8 +66,10 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
     });
   }, [messages]);
   useEffect(() => {
-    socket.emit('join_conversation',{conversation_id : conversation.conversation_id});
-    setUserTyping({});   // khi chuyển conversation phải người cho về rỗng 
+    // socket.emit("join_conversation", {
+    //   conversation_id: conversation.conversation_id,
+    // });
+    setUserTyping({}); // khi chuyển conversation phải người cho về rỗng
     setIsLoadingMessage(true);
     if (!conversation.conversation_id) return;
     const controller = new AbortController();
@@ -99,22 +108,58 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   }, [conversation.conversation_id]);
 
   useEffect(() => {
-    if (messageInput) { 
-    socket.emit("typing_start", {conversation_id : conversation.conversation_id});
-  }
-    else {
-      socket.emit("typing_stop", {conversation_id : conversation.conversation_id});
+    if (messageInput) {
+      socket.emit("typing_start", {
+        conversation_id: conversation.conversation_id,
+      });
+    } else {
+      socket.emit("typing_stop", {
+        conversation_id: conversation.conversation_id,
+      });
     }
-  } , [messageInput])
+  }, [messageInput]);
 
-  socket.on("user_typing", (user_Typing: UserTyping) => {
-  // console.log("Messageconversation.tsx >> User typing" , user_Typing );
-   if(user_Typing) setUserTyping(user_Typing);
-  });
-   socket.on('user_stopped_typing',(data: Pick<UserTyping, "user_id" | "conversation_id">) => { // phải tạo type cho data
-    setUserTyping({});
-  });
-  const handleSend = () => {};
+  useEffect(() => {
+    socket.on("user_typing", (user_Typing: UserTyping) => {
+      // console.log("Messageconversation.tsx >> User typing" , user_Typing );
+      if (user_Typing) setUserTyping(user_Typing);
+    });
+    socket.on(
+      "user_stopped_typing",
+      (data: Pick<UserTyping, "user_id" | "conversation_id">) => {
+        // phải tạo type cho data
+        setUserTyping({});
+      }
+    );
+    socket.on("new_message", (data) => {
+      // data phải điền type (chưa fix)
+      // console.log("MessageConversaion.tsx >> data event new message : ", data);
+      setMessages((oldMessages) => [
+        ...oldMessages,
+        {
+          ...data.message,
+          sender: {
+            user_id: user_id,
+            avatar_url: avatar_url,
+            username: username,
+          },
+          attachments: [],
+          statuses: [],
+        },
+      ]);
+    });
+  }, [socket]);
+  const handleSend = async (e: FormEvent) => {
+    e.preventDefault();
+    if (messageInput == "") return;
+    // console.log("click enter");
+    setMessageInput("");
+
+    socket.emit("send_message", {
+      conversation_id: conversation.conversation_id,
+      content: messageInput,
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-white ">
@@ -278,7 +323,9 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
           </div>
         )}
         {userTyping.username && (
-          <div className="absolute left-1 bottom-1 text-gray-600 italic text-[14px]">{userTyping.username} đang soạn tin ...  </div>
+          <div className="absolute left-1 bottom-1 text-gray-600 italic text-[14px]">
+            {userTyping.username} đang soạn tin ...{" "}
+          </div>
         )}
       </div>
 
@@ -301,37 +348,66 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
               />
             </PopoverContent>
           </Popover>
-          <button
-            className={`${
-              messageInput ? "w-0" : "p-2"
-            }  hover:bg-gray-100 rounded-full`}
+
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <button
+                className={`${
+                  messageInput ? "w-0" : "p-2"
+                }  hover:bg-gray-100 rounded-full`}
+              >
+                <Mic
+                  className={`${
+                    messageInput
+                      ? "w-0 translate-x-[-35px]"
+                      : "w-6 translate-x-0"
+                  }  transition-all duration-300  h-6 text-gray-700`}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-black">
+              <p className="bg-black text-white text-xs">Gửi clip âm thanh</p>
+            </TooltipContent>
+          </Tooltip>
+          <input type="file" ref={inputFile} multiple className="hidden" />
+
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <button
+                className={`${
+                  messageInput ? "w-0" : "p-2"
+                } hover:bg-gray-100 rounded-full`}
+                onClick={() => {
+                  inputFile.current.click();
+                }}
+              >
+                <Image
+                  className={`${
+                    messageInput
+                      ? "w-0 translate-x-[-35px]"
+                      : "w-6 translate-x-0"
+                  } transition-all duration-300  h-6 text-gray-700`}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-black">
+              <p className="bg-black text-white text-xs">
+                Đính kèm file có kích thước tối đa 10MB
+              </p>
+            </TooltipContent>
+          </Tooltip>
+          <form
+            onSubmit={handleSend}
+            className="flex-1 flex items-center max-h-32 overflow-y-auto bg-gray-100 rounded-[20px] px-4 py-2"
           >
-            <Mic
-              className={`${
-                messageInput ? "w-0 translate-x-[-35px]" : "w-6 translate-x-0"
-              }  transition-all duration-300  h-6 text-gray-700`}
-            />
-          </button>
-          <button
-            className={`${
-              messageInput ? "w-0" : "p-2"
-            } hover:bg-gray-100 rounded-full`}
-          >
-            <Image
-              className={`${
-                messageInput ? "w-0 translate-x-[-35px]" : "w-6 translate-x-0"
-              } transition-all duration-300  h-6 text-gray-700`}
-            />
-          </button>
-          <div className="flex-1 flex items-center max-h-32 overflow-y-auto bg-gray-100 rounded-[20px] px-4 py-2">
-            <textarea
+            <input
               placeholder="Nhắn tin..."
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 break-words whitespace-pre-wrap over bg-transparent outline-none text-sm"
+              // onKeyDown={(e) => e.key === "Enter" && handleSend(e)}
+              className="flex-1 max-h-8 break-words whitespace-pre-wrap over bg-transparent outline-none text-sm"
             />
-          </div>
+          </form>
 
           {!messageInput ? (
             <button className="p-2 hover:bg-gray-100 rounded-full">

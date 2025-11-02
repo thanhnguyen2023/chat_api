@@ -23,6 +23,11 @@ import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import { toast } from "sonner";
 import { useIsMobile } from "../hooks/use-mobile";
 import { useGlobal } from "@/hooks/useGlobal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Messages = () => {
   // const { username } = useParams();
@@ -175,41 +180,62 @@ const Messages = () => {
                       setSelectedConversation(conversation);
                     }}
                   >
-                    <Avatar className={`relative h-12 w-12 overflow-visible`}>
-                      <AvatarImage
-                        src={
-                          conversation.is_group
-                            ? ""
-                            : conversation.participants[0].user_id == user_id
-                            ? conversation.participants[1].avatar_url
-                            : conversation.participants[0].avatar_url
-                        } // cần fix , api backend không có ảnh conversation
-                        alt={`${conversation.conversation_name}'s avatar`}
-                      />
-                      <AvatarFallback>
-                        {conversation.conversation_name
-                          ? conversation.conversation_name[0].toUpperCase()
-                          : ""}
-                      </AvatarFallback>
-                      {/* trạng thái online  */}
-                      {/* mặc định trạng thái online của group là online , nếu k là group thì check người bên kia */}
+                    {/* hiển thị tên khi hover */}
+                    <Tooltip delayDuration={100}> 
+                      <TooltipTrigger asChild>
+                        <Avatar
+                          className={`relative h-12 w-12 overflow-visible`}
+                        >
+                          <AvatarImage
+                            src={
+                              conversation.is_group
+                                ? ""
+                                : conversation.participants[0].user_id ==
+                                  user_id
+                                ? conversation.participants[1].avatar_url
+                                : conversation.participants[0].avatar_url
+                            } // cần fix , api backend không có ảnh conversation
+                            alt={`${conversation.conversation_name}'s avatar`}
+                          />
+                          <AvatarFallback>
+                            {conversation.conversation_name
+                              ? conversation.conversation_name[0].toUpperCase()
+                              : ""}
+                          </AvatarFallback>
+                          {/* trạng thái online  */}
+                          {/* mặc định trạng thái online của group là online , nếu k là group thì check người bên kia */}
 
-                      <div
-                        className={`${
-                          conversation.is_group
-                            ? "bg-green-500 "
-                            : conversation.participants[0].user_id != user_id
-                            ? conversation.participants[0].status != "online"
-                              ? " bg-gray-500 "
-                              : " bg-green-500 "
-                            : conversation.participants[1].user_id != user_id
-                            ? conversation.participants[1].status != "online"
-                              ? " bg-gray-500 "
-                              : " bg-green-500 "
-                            : ""
-                        } absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full`}
-                      ></div>
-                    </Avatar>
+                          <div
+                            className={`${
+                              conversation.is_group
+                                ? "bg-green-500 "
+                                : conversation.participants[0].user_id !=
+                                  user_id
+                                ? conversation.participants[0].status !=
+                                  "online"
+                                  ? " bg-gray-500 "
+                                  : " bg-green-500 "
+                                : conversation.participants[1].user_id !=
+                                  user_id
+                                ? conversation.participants[1].status !=
+                                  "online"
+                                  ? " bg-gray-500 "
+                                  : " bg-green-500 "
+                                : ""
+                            } absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full`}
+                          ></div>
+                        </Avatar>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-black">
+                        <p className="bg-black text-white text-xs">
+                         {conversation.is_group // nếu là group thì lấy tên của group
+                            ? conversation.conversation_name
+                            : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
+                            ? conversation.participants[1].username
+                            : conversation.participants[0].username}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                     {isMobile ? (
                       ""
                     ) : (
@@ -236,13 +262,15 @@ const Messages = () => {
                       </div>
                     )}
 
-                   {!isMobile &&  <p className="text-xs text-muted-foreground flex-shrink-0">
-                      {conversation.last_message != null &&
-                        formatDistanceToNowStrict(
-                          new Date(conversation.last_message.created_at),
-                          { addSuffix: true }
-                        )}
-                    </p>}
+                    {!isMobile && (
+                      <p className="text-xs text-muted-foreground flex-shrink-0">
+                        {conversation.last_message != null &&
+                          formatDistanceToNowStrict(
+                            new Date(conversation.last_message.created_at),
+                            { addSuffix: true }
+                          )}
+                      </p>
+                    )}
                   </Link>
                 ))}
               </div>
