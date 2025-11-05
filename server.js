@@ -18,6 +18,7 @@ const conversationRoutes = require("./routes/conversations")
 const messageRoutes = require("./routes/messages")
 const uploadRoutes = require("./routes/upload")
 const notificationRoutes = require("./routes/notifications")
+const postRautes = require("./routes/postRautes")
 
 // Import socket handlers
 const socketHandler = require("./socket/socketHandler")
@@ -56,6 +57,7 @@ app.use("/api/conversations", conversationRoutes)
 app.use("/api/messages", messageRoutes)
 app.use("/api/upload", uploadRoutes)
 app.use("/api/notifications", notificationRoutes)
+app.use("/api/posts", postRautes)
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

@@ -306,7 +306,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
 })
 
 
-// Get user contacts/friends
+// Get user contacts/friends (loại bỏ phân trang của nhánh HEAD)
 router.get("/me/contacts", authenticateToken, async (req, res) => {
   try {
     const contacts = await UserContact.findAll({
