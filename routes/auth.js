@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models")
 const { validate, schemas } = require("../utils/validation")
 const { authenticateToken } = require("../middleware/auth")
-const { Op } = require("sequelize")
+
+const { Op } = require('sequelize')
 
 const router = express.Router()
 
@@ -145,58 +146,6 @@ router.get("/me", authenticateToken, async (req, res) => {
     console.error("Get profile error:", error)
     res.status(500).json({
       error: { message: "Failed to get user profile" },
-    })
-  }
-})
-
-// Update user profile (giữ lại logic từ nhánh HEAD)
-router.put("/me", authenticateToken, validate(schemas.updateProfile), async (req, res) => {
-  try {
-    const { username, avatar_url, status } = req.body
-    const updateData = {}
-
-    if (username) updateData.username = username
-    if (avatar_url) updateData.avatar_url = avatar_url
-    if (status) updateData.status = status
-
-    // Check if username is already taken by another user
-    if (username && username !== req.user.username) {
-      const existingUser = await User.findOne({
-        where: {
-          username,
-          user_id: { [Op.ne]: req.user.user_id }
-        }
-      })
-
-      if (existingUser) {
-        return res.status(409).json({
-          error: { message: "Username already taken" }
-        })
-      }
-    }
-
-    await req.user.update(updateData)
-
-    res.json({
-      message: "Profile updated successfully",
-      data: {
-        user: req.user.toJSON()
-      }
-    })
-  } catch (error) {
-    console.error("Update profile error:", error)
-
-    if (error.name === "SequelizeValidationError") {
-      return res.status(400).json({
-        error: {
-          message: "Validation error",
-          details: error.errors.map((err) => err.message)
-        }
-      })
-    }
-
-    res.status(500).json({
-      error: { message: "Failed to update profile" }
     })
   }
 })

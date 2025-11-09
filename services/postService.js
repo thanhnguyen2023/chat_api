@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const {
   sequelize,
   Post,
@@ -7,6 +8,8 @@ const {
   PostMedia,
   User
 } = require("../models")
+
+const { Op } = require("sequelize")
 
 const nestComments = (comments, parentId = null) => {
   const nestedComments = []
@@ -316,6 +319,289 @@ const deleteComment = async (user_id, post_id, comment_id) => {
   return { success: true, message: "Comment deleted successfully." }
 }
 
+const getFeedPosts = async (userId, page = 1, limit = 10) => {
+  const pageSize = Number.parseInt(limit)
+  const offset = (Number.parseInt(page) - 1) * pageSize
+
+  try {
+    // Đếm tổng số bài viết trước (dùng cho phân trang)
+    const totalPosts = await Post.count({
+      where: {
+        is_archived: false // Chỉ đếm bài viết không bị lưu trữ
+      }
+    })
+
+    // Lấy bài viết với Eager Loading
+    const posts = await Post.findAll({
+      where: {
+        is_archived: false
+        // TODO: Thêm logic lọc theo danh sách người dùng đang follow ở đây
+      },
+      attributes: {
+        // Lấy tất cả các thuộc tính của Post và thêm các cột tổng hợp
+        include: [
+          // Đếm tổng số likes (sử dụng alias 'likes')
+          [sequelize.fn("COUNT", sequelize.col("likes.post_id")), "likeCount"],
+          // Đếm tổng số comments (sử dụng alias 'comments')
+          [sequelize.fn("COUNT", sequelize.col("comments.post_id")), "commentCount"],
+          // Kiểm tra xem người dùng hiện tại đã like bài viết này chưa
+          [
+            // Dùng EXISTS subquery để kiểm tra sự tồn tại của PostLike
+            sequelize.literal(`EXISTS (SELECT 1 FROM post_likes WHERE post_likes.post_id = Post.post_id AND post_likes.user_id = ${userId})`),
+            "isLiked"
+          ],
+          // Kiểm tra xem người dùng hiện tại đã lưu bài viết này chưa
+          [
+            // Dùng EXISTS subquery để kiểm tra sự tồn tại của PostSave
+            sequelize.literal(`EXISTS (SELECT 1 FROM post_saves WHERE post_saves.post_id = Post.post_id AND post_saves.user_id = ${userId})`),
+            "isSaved"
+          ]
+        ]
+      },
+      include: [
+        {
+          model: User,
+          as: "author",
+          attributes: ["user_id", "username", "avatar_url", "full_name"] // Thông tin người đăng
+        },
+        {
+          model: PostMedia,
+          as: "media",
+          attributes: ["media_url", "media_type", "order_index"], // Danh sách media
+          required: false // LEFT JOIN
+        },
+        // Include PostLike và PostComment để COUNT hoạt động. Dùng `required: false` cho LEFT JOIN
+        {
+          model: PostLike,
+          as: "likes",
+          attributes: [], // Không cần lấy data, chỉ dùng để COUNT
+          required: false
+        },
+        {
+          model: PostComment,
+          as: "comments",
+          attributes: [], // Không cần lấy data, chỉ dùng để COUNT
+          required: false
+        }
+      ],
+      // Grouping theo post_id và các association để COUNT hoạt động đúng
+      group: ["Post.post_id", "author.user_id", "media.media_id"],
+      order: [["created_at", "DESC"], ["media", "order_index", "ASC"]], // Sắp xếp theo thời gian mới nhất
+      limit: pageSize,
+      offset: offset,
+      subQuery: false // Quan trọng khi dùng LIMIT/OFFSET/GROUP
+    })
+
+    // Định dạng lại dữ liệu và chuyển đổi kiểu dữ liệu cho các cột từ literal
+    const postsData = posts.map(post => {
+      const postJson = post.toJSON()
+      // Chuyển đổi các cột COUNT/EXISTS (từ literal/COUNT) về kiểu số/boolean
+      postJson.likeCount = Number.parseInt(postJson.likeCount) || 0
+      postJson.commentCount = Number.parseInt(postJson.commentCount) || 0
+      // Giá trị từ literal thường là '1'/'0' hoặc true/false tùy DB, nên dùng logic linh hoạt
+      postJson.isLiked = postJson.isLiked === "1" || postJson.isLiked === 1 || postJson.isLiked === true
+      postJson.isSaved = postJson.isSaved === "1" || postJson.isSaved === 1 || postJson.isSaved === true
+
+      return postJson
+    })
+
+    return {
+      success: true,
+      data: {
+        posts: postsData,
+        pagination: {
+          current_page: Number.parseInt(page),
+          total_pages: Math.ceil(totalPosts / pageSize),
+          total_count: totalPosts,
+          per_page: pageSize
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Get feed posts error:", error)
+    return { success: false, message: "Failed to fetch feed posts", error }
+  }
+}
+
+const getExploreGridPosts = async (page = 1, limit = 24) => {
+  const pageSize = Number.parseInt(limit)
+  const offset = (Number.parseInt(page) - 1) * pageSize
+
+  try {
+    // 1. Tính TOTAL_COUNT (Tổng số bài viết công khai, KHÔNG cần media)
+    const totalPosts = await Post.count({
+      where: {
+        is_archived: false
+      }
+    })
+
+    // 2. Tính TOTAL_MEDIA_COUNT (Tổng số bài viết CÔNG KHAI CÓ MEDIA)
+    const { count: mediaCountResult } = await Post.findAndCountAll({
+      where: {
+        is_archived: false
+      },
+      include: [
+        {
+          model: PostMedia,
+          as: "media",
+          attributes: [],
+          required: true // INNER JOIN: Chỉ đếm những bài CÓ media
+        }
+      ],
+      // Phải group by Post.post_id để count chính xác khi dùng INNER JOIN
+      group: ["Post.post_id"]
+    })
+
+    // Khi dùng GROUP BY, Sequelize trả về mảng. Ta phải lấy độ dài của mảng đó.
+    const totalMediaCount = Array.isArray(mediaCountResult) ? mediaCountResult.length : mediaCountResult
+
+
+    // 3. Truy vấn bài viết thực tế (Chỉ lấy những bài CÓ media)
+    const posts = await Post.findAll({
+      where: {
+        is_archived: false
+      },
+      attributes: [
+        "post_id",
+        "user_id",
+        "created_at"
+      ],
+      include: [
+        {
+          model: PostMedia,
+          as: "media",
+          where: { order_index: 1 },
+          attributes: ["media_url", "media_type"],
+          required: true // INNER JOIN: Đảm bảo chỉ lấy bài có media
+        }
+      ],
+      order: [["created_at", "DESC"]],
+      limit: pageSize,
+      offset: offset,
+      subQuery: false
+    })
+
+    // 4. Định dạng lại dữ liệu trả về (Giữ nguyên)
+    const gridPosts = posts.map(post => {
+      const postJson = post.toJSON()
+
+      const media = postJson.media && postJson.media.length > 0 ? postJson.media[0] : null
+
+      return {
+        post_id: postJson.post_id,
+        user_id: postJson.user_id,
+        thumbnail_url: media ? media.media_url : null,
+        media_type: media ? media.media_type : null,
+        is_video: media ? media.media_type === "video" : false
+      }
+    })
+
+    // 5. Trả về kết quả với cả hai thông số count
+    return {
+      success: true,
+      data: {
+        posts: gridPosts,
+        pagination: {
+          current_page: Number.parseInt(page),
+          // Total pages phải dựa trên số lượng bài viết có media (totalMediaCount)
+          total_pages: Math.ceil(totalMediaCount / pageSize),
+          total_count: totalPosts, // 4 (Tổng số bài viết công khai)
+          total_media_count: totalMediaCount, // 1 (Số bài viết có media)
+          per_page: pageSize
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Get explore grid posts error:", error)
+    return { success: false, message: "Failed to fetch explore grid posts", error }
+  }
+}
+
+const getUserGridPosts = async (profileUserId, currentUserId, page = 1, limit = 24) => {
+  const pageSize = Number.parseInt(limit)
+  const offset = (Number.parseInt(page) - 1) * pageSize
+
+  try {
+    // 1. Định nghĩa điều kiện lọc cơ bản
+    const whereClause = {
+      user_id: profileUserId, // Lọc theo ID người dùng
+      is_archived: false // Chỉ lấy bài viết chưa bị lưu trữ
+      // TODO: Thêm logic kiểm tra quyền riêng tư (User.is_private) tại đây
+    }
+
+    // 2. Count tổng số bài viết CÓ MEDIA (để tính Total Pages)
+    const { count: mediaCountResult } = await Post.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: PostMedia,
+          as: "media",
+          attributes: [],
+          required: true // INNER JOIN: Chỉ đếm những bài CÓ media
+        }
+      ],
+      group: ["Post.post_id"]
+    })
+
+    const totalMediaCount = Array.isArray(mediaCountResult) ? mediaCountResult.length : mediaCountResult
+
+
+    // 3. Truy vấn bài viết thực tế
+    const posts = await Post.findAll({
+      where: whereClause,
+      attributes: [
+        "post_id",
+        "user_id",
+        "created_at"
+      ],
+      include: [
+        {
+          model: PostMedia,
+          as: "media",
+          where: { order_index: 1 },
+          attributes: ["media_url", "media_type"],
+          required: true // INNER JOIN: Đảm bảo chỉ lấy bài có media
+        }
+      ],
+      order: [["created_at", "DESC"]], // Bài mới nhất lên trước
+      limit: pageSize,
+      offset: offset,
+      subQuery: false
+    })
+
+    // 4. Định dạng lại dữ liệu trả về (Giữ nguyên cấu trúc gọn nhẹ)
+    const gridPosts = posts.map(post => {
+      const postJson = post.toJSON()
+
+      const media = postJson.media && postJson.media.length > 0 ? postJson.media[0] : null
+
+      return {
+        post_id: postJson.post_id,
+        user_id: postJson.user_id,
+        thumbnail_url: media ? media.media_url : null,
+        media_type: media ? media.media_type : null,
+        is_video: media ? media.media_type === "video" : false
+      }
+    })
+
+    return {
+      success: true,
+      data: {
+        posts: gridPosts,
+        pagination: {
+          current_page: Number.parseInt(page),
+          total_pages: Math.ceil(totalMediaCount / pageSize),
+          total_count: totalMediaCount, // Tổng số bài có media để phân trang
+          per_page: pageSize
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Get user grid posts error:", error)
+    return { success: false, message: "Failed to fetch user grid posts", error }
+  }
+}
+
 module.exports = {
   createPost,
   toggleLikePost,
@@ -326,6 +612,9 @@ module.exports = {
   updateComment,
   updatePostMedia,
   deletePost,
-  deleteComment
+  deleteComment,
+  getFeedPosts,
+  getExploreGridPosts,
+  getUserGridPosts
 }
 

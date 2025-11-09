@@ -19,7 +19,6 @@ const conversationRoutes = require("./routes/conversations")
 const messageRoutes = require("./routes/messages")
 const uploadRoutes = require("./routes/upload")
 const notificationRoutes = require("./routes/notifications")
-// const followRoutes = require("./routes/follow")
 const postRautes = require("./routes/postRautes")
 
 // Import socket handlers
@@ -36,6 +35,7 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"]
 }
 
+// Static uploads path
 app.use("/uploads", express.static(path.resolve("uploads")))
 console.log("📁 Static uploads path:", path.resolve("uploads"))
 
@@ -47,8 +47,8 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }))
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: "Too many requests from this IP, please try again later."
 })
 app.use("/api/", limiter)
@@ -60,10 +60,9 @@ app.use("/api/conversations", conversationRoutes)
 app.use("/api/messages", messageRoutes)
 app.use("/api/upload", uploadRoutes)
 app.use("/api/notifications", notificationRoutes)
-// app.use("/api/follow", followRoutes)
 app.use("/api/posts", postRautes)
 
-// Health check endpoint
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
@@ -72,7 +71,7 @@ app.get("/api/health", (req, res) => {
   })
 })
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack)
   res.status(err.status || 500).json({
@@ -98,20 +97,16 @@ const io = socketIo(server, {
 // Initialize socket handlers
 socketHandler(io)
 
-// Database connection and server start
-const PORT = process.env.PORT || 3000
+// Server start
+const PORT = process.env.PORT || 8080
 
 async function startServer() {
   try {
-    // Test database connection
     await sequelize.authenticate()
     console.log("✅ Database connection established successfully.")
-
-    // Sync database (create tables if they don't exist)
     await sequelize.sync({ alter: process.env.NODE_ENV === "development" })
     console.log("✅ Database synchronized successfully.")
 
-    // Start server
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`)
       console.log("📡 Socket.IO server ready")

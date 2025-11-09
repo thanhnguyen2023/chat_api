@@ -54,6 +54,18 @@ const defineAssociations = () => {
   Post.hasMany(PostMedia, { foreignKey: "post_id", as: "media" })
   PostMedia.belongsTo(Post, { foreignKey: "post_id", as: "post" })
 
+  Post.hasMany(PostLike, { foreignKey: "post_id", as: "likes" })
+  PostLike.belongsTo(User, {
+    foreignKey: "user_id",
+    as: "user", 
+  })
+
+  Post.hasMany(PostSave, { foreignKey: "post_id", as: "saves" })
+  PostSave.belongsTo(User, {
+    foreignKey: "user_id",
+    as: "user", 
+  })
+
   Post.hasMany(PostComment, { foreignKey: "post_id", as: "comments" })
   PostComment.belongsTo(Post, { foreignKey: "post_id" })
   PostComment.belongsTo(User, { foreignKey: "user_id", as: "commenter" })

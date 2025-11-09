@@ -7,6 +7,12 @@ const { authenticateToken } = require("../middleware/auth.js")
 // Tất cả các route này đều yêu cầu xác thực
 router.use(authenticateToken)
 
+router.get("/explore", postController.getExploreGridPostsController)
+
+router.get("/user/:userId", postController.getUserGridPostsController)
+
+router.get("/", postController.getFeedPosts)
+
 // POST /api/posts - Tạo bài viết mới (chỉ caption/location)
 router.post(
   "/",

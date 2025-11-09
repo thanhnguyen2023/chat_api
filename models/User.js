@@ -99,10 +99,16 @@ const User = sequelize.define(
     },
 
     indexes: [
-      { unique: true, fields: ["username"] },
-      { unique: true, fields: ["email"] }
-    ]
-  }
+      {
+        unique: true,
+        fields: ["username"],
+      },
+      {
+        unique: true,
+        fields: ["email"],
+      },
+    ],
+  },
 )
 
 User.prototype.comparePassword = async function (candidatePassword) {

@@ -128,9 +128,8 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     const { messageId } = req.params
     const files = req.files
 
-    if (!files || files.length === 0) {
+    if (!files || files.length === 0)
       return res.status(400).json({ error: { message: "No files uploaded" } })
-    }
 
     // Kiểm tra message có tồn tại không
     const message = await Message.findByPk(messageId, {
