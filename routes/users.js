@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require("express")
 const { Op } = require("sequelize")
 const { User, UserContact, BlockedUser, Conversation, Participant } = require("../models")
@@ -28,12 +29,12 @@ router.put("/me", authenticateToken, async (req, res) => {
 
 
     const updatedUser = await User.findByPk(userId, {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password"] }
     })
 
     res.json({
       message: "Profile updated successfully",
-      data: updatedUser,
+      data: updatedUser
     })
   } catch (error) {
     console.error("Update profile error:", error)
@@ -48,7 +49,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
     const offset = (Number.parseInt(page) - 1) * Number.parseInt(limit)
     const whereClause = {
-      user_id: { [Op.ne]: req.user.user_id }, // Exclude current user
+      user_id: { [Op.ne]: req.user.user_id } // Exclude current user
     }
 
     // Add search filter
@@ -66,7 +67,7 @@ router.get("/", authenticateToken, async (req, res) => {
     if (exclude_blocked === "true") {
       const blockedUsers = await BlockedUser.findAll({
         where: { user_id: req.user.user_id },
-        attributes: ["blocked_user_id"],
+        attributes: ["blocked_user_id"]
       })
       blockedUserIds = blockedUsers.map((bu) => bu.blocked_user_id)
 
@@ -80,7 +81,7 @@ router.get("/", authenticateToken, async (req, res) => {
       attributes: { exclude: ["password"] },
       limit: Number.parseInt(limit),
       offset,
-      order: [["username", "ASC"]],
+      order: [["username", "ASC"]]
     })
 
     res.json({
@@ -90,118 +91,118 @@ router.get("/", authenticateToken, async (req, res) => {
           current_page: Number.parseInt(page),
           total_pages: Math.ceil(count / Number.parseInt(limit)),
           total_count: count,
-          per_page: Number.parseInt(limit),
-        },
-      },
+          per_page: Number.parseInt(limit)
+        }
+      }
     })
   } catch (error) {
     console.error("Get users error:", error)
     res.status(500).json({
-      error: { message: "Failed to get users" },
+      error: { message: "Failed to get users" }
     })
   }
 })
 
 // Lấy danh sách người follow mình
-router.get('/followers', authenticateToken, async (req, res) => {
+router.get("/followers", authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.user_id, {
-      include: [{ model: User, as: 'Followers', attributes: ['user_id', 'username', 'avatar_url'] }]
-    });
-    res.json(user.Followers);
+      include: [{ model: User, as: "Followers", attributes: ["user_id", "username", "avatar_url"] }]
+    })
+    res.json(user.Followers)
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error(err)
+    res.status(500).json({ error: "Server error" })
   }
-});
+})
 
-// Lấy danh sách bạn bè 
-router.get('/friends', authenticateToken, async (req, res) => {
-  const userId = req.user.user_id;
+// Lấy danh sách bạn bè
+router.get("/friends", authenticateToken, async (req, res) => {
+  const userId = req.user.user_id
   try {
     const following = await UserContact.findAll({
       where: { user_id: userId },
-      attributes: ['friend_id'],
-    });
+      attributes: ["friend_id"]
+    })
 
-    const followingIds = following.map(f => f.friend_id);
-    if (followingIds.length === 0) return res.json([]);
+    const followingIds = following.map(f => f.friend_id)
+    if (followingIds.length === 0) return res.json([])
 
     const mutual = await UserContact.findAll({
       where: {
         user_id: followingIds,
-        friend_id: userId,
+        friend_id: userId
       },
-      attributes: ['user_id'],
-    });
+      attributes: ["user_id"]
+    })
 
-    const mutualIds = mutual.map(m => m.user_id);
-    if (mutualIds.length === 0) return res.json([]);
+    const mutualIds = mutual.map(m => m.user_id)
+    if (mutualIds.length === 0) return res.json([])
 
     const friends = await User.findAll({
       where: { user_id: mutualIds },
-      attributes: ['user_id', 'username', 'avatar_url'],
-    });
+      attributes: ["user_id", "username", "avatar_url"]
+    })
 
-    res.json(friends);
+    res.json(friends)
   } catch (err) {
-    console.error('Friends error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Friends error:", err)
+    res.status(500).json({ error: "Server error" })
   }
-});
+})
 
 //danh sách đề xuất bạn bè
 router.get("/suggestions", authenticateToken, async (req, res) => {
-  const userId = req.user.user_id;
+  const userId = req.user.user_id
 
   try {
     // Nếu có view_all=true thì bỏ phân trang
-    const viewAll = req.query.view_all === "true";
+    const viewAll = req.query.view_all === "true"
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = viewAll ? null : parseInt(req.query.limit) || 20;
-    const offset = limit ? (page - 1) * limit : 0;
+    const page = parseInt(req.query.page) || 1
+    const limit = viewAll ? null : parseInt(req.query.limit) || 20
+    const offset = limit ? (page - 1) * limit : 0
 
     const following = await UserContact.findAll({
       where: { user_id: userId },
-      attributes: ["friend_id"],
-    });
+      attributes: ["friend_id"]
+    })
 
-    const followingIds = following.map((f) => f.friend_id);
+    const followingIds = following.map((f) => f.friend_id)
     if (followingIds.length === 0) {
       return res.json({
-        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } },
-      });
+        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } }
+      })
     }
 
     const friendsOfFollowing = await UserContact.findAll({
       where: { user_id: followingIds },
-      attributes: ["friend_id"],
-    });
+      attributes: ["friend_id"]
+    })
 
-    const candidateIds = friendsOfFollowing.map((f) => f.friend_id);
+    const candidateIds = friendsOfFollowing.map((f) => f.friend_id)
 
-    const excludeIds = [userId, ...followingIds];
+    const excludeIds = [userId, ...followingIds]
     const uniqueCandidateIds = [...new Set(candidateIds)].filter(
       (id) => !excludeIds.includes(id)
-    );
+    )
 
     if (uniqueCandidateIds.length === 0) {
       return res.json({
-        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } },
-      });
+        data: { suggestions: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: limit || "all" } }
+      })
     }
 
-    const totalCount = uniqueCandidateIds.length;
-    const totalPages = limit ? Math.ceil(totalCount / limit) : 1;
+    const totalCount = uniqueCandidateIds.length
+    const totalPages = limit ? Math.ceil(totalCount / limit) : 1
     const paginatedIds = limit
       ? uniqueCandidateIds.slice(offset, offset + limit)
-      : uniqueCandidateIds;
+      : uniqueCandidateIds
 
     const suggestions = await User.findAll({
       where: { user_id: paginatedIds },
-      attributes: ["user_id", "username", "full_name", "avatar_url"],
-    });
+      attributes: ["user_id", "username", "full_name", "avatar_url"]
+    })
 
     res.json({
       data: {
@@ -210,15 +211,15 @@ router.get("/suggestions", authenticateToken, async (req, res) => {
           current_page: page,
           total_pages: totalPages,
           total_count: totalCount,
-          per_page: limit || "all",
-        },
-      },
-    });
+          per_page: limit || "all"
+        }
+      }
+    })
   } catch (err) {
-    console.error("Suggestions error:", err);
-    res.status(500).json({ error: "Failed to fetch friend suggestions" });
+    console.error("Suggestions error:", err)
+    res.status(500).json({ error: "Failed to fetch friend suggestions" })
   }
-});
+})
 
 
 // Get user by ID
@@ -227,12 +228,12 @@ router.get("/:userId", authenticateToken, async (req, res) => {
     const { userId } = req.params
 
     const user = await User.findByPk(userId, {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password"] }
     })
 
     if (!user) {
       return res.status(404).json({
-        error: { message: "User not found" },
+        error: { message: "User not found" }
       })
     }
 
@@ -240,8 +241,8 @@ router.get("/:userId", authenticateToken, async (req, res) => {
     const isBlocked = await BlockedUser.findOne({
       where: {
         user_id: req.user.user_id,
-        blocked_user_id: userId,
-      },
+        blocked_user_id: userId
+      }
     })
 
     // 3️⃣ Tìm conversation_id 1-1 giữa 2 người
@@ -252,22 +253,22 @@ router.get("/:userId", authenticateToken, async (req, res) => {
           model: Conversation,
           as: "conversation",
           attributes: [],
-          where: { is_group: false },
-        },
+          where: { is_group: false }
+        }
       ],
-      where: { user_id: req.user.user_id },
-    });
+      where: { user_id: req.user.user_id }
+    })
 
-    const conversationIds = myConversations.map(p => p.conversation_id);
+    const conversationIds = myConversations.map(p => p.conversation_id)
 
     const shared = await Participant.findOne({
       where: {
         user_id: userId,
-        conversation_id: { [Op.in]: conversationIds },
-      },
-    });
+        conversation_id: { [Op.in]: conversationIds }
+      }
+    })
 
-    const conversationId = shared ? shared.conversation_id : null;
+    const conversationId = shared ? shared.conversation_id : null
 
     // Check private profile
     let userData = user.toJSON()
@@ -275,8 +276,8 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       const isFriend = await UserContact.findOne({
         where: {
           user_id: req.user.user_id,
-          friend_id: userId,
-        },
+          friend_id: userId
+        }
       })
 
       if (!isFriend && req.user.user_id !== Number.parseInt(userId)) {
@@ -285,7 +286,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
           username: user.username,
           avatar_url: user.avatar_url,
           status: user.status,
-          is_private: true,
+          is_private: true
         }
       }
     }
@@ -294,13 +295,13 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       data: {
         user: userData,
         is_blocked: !!isBlocked,
-        conversation_id: conversationId,
-      },
+        conversation_id: conversationId
+      }
     })
   } catch (error) {
     console.error("Get user error:", error)
     res.status(500).json({
-      error: { message: "Failed to get user" },
+      error: { message: "Failed to get user" }
     })
   }
 })
@@ -315,26 +316,26 @@ router.get("/me/contacts", authenticateToken, async (req, res) => {
         {
           model: User,
           as: "friend",
-          attributes: { exclude: ["password"] },
-        },
+          attributes: { exclude: ["password"] }
+        }
       ],
-      order: [["created_at", "DESC"]],
-    });
+      order: [["created_at", "DESC"]]
+    })
 
     res.json({
       data: contacts.map((contact) => ({
         contact_id: contact.contact_id,
         friend: contact.friend,
-        created_at: contact.created_at,
-      })),
-    });
+        created_at: contact.created_at
+      }))
+    })
   } catch (error) {
-    console.error("Get contacts error:", error);
+    console.error("Get contacts error:", error)
     res.status(500).json({
-      error: { message: "Failed to get contacts" },
-    });
+      error: { message: "Failed to get contacts" }
+    })
   }
-});
+})
 
 // Add user to contacts
 router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
@@ -345,14 +346,14 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
     const friend = await User.findByPk(friendId)
     if (!friend) {
       return res.status(404).json({
-        error: { message: "User not found" },
+        error: { message: "User not found" }
       })
     }
 
     // Check if user is trying to add themselves
     if (Number.parseInt(friendId) === req.user.user_id) {
       return res.status(400).json({
-        error: { message: "Cannot add yourself as a contact" },
+        error: { message: "Cannot add yourself as a contact" }
       })
     }
 
@@ -360,13 +361,13 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
     const existingContact = await UserContact.findOne({
       where: {
         user_id: req.user.user_id,
-        friend_id: friendId,
-      },
+        friend_id: friendId
+      }
     })
 
     if (existingContact) {
       return res.status(409).json({
-        error: { message: "User already in contacts" },
+        error: { message: "User already in contacts" }
       })
     }
 
@@ -375,31 +376,31 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
       where: {
         [Op.or]: [
           { user_id: req.user.user_id, blocked_user_id: friendId },
-          { user_id: friendId, blocked_user_id: req.user.user_id },
-        ],
-      },
+          { user_id: friendId, blocked_user_id: req.user.user_id }
+        ]
+      }
     })
 
     if (isBlocked) {
       return res.status(403).json({
-        error: { message: "Cannot add blocked user to contacts" },
+        error: { message: "Cannot add blocked user to contacts" }
       })
     }
 
     // Add to contacts
     const contact = await UserContact.create({
       user_id: req.user.user_id,
-      friend_id: friendId,
+      friend_id: friendId
     })
 
     res.status(201).json({
       message: "Contact added successfully",
-      data: { contact_id: contact.contact_id },
+      data: { contact_id: contact.contact_id }
     })
   } catch (error) {
     console.error("Add contact error:", error)
     res.status(500).json({
-      error: { message: "Failed to add contact" },
+      error: { message: "Failed to add contact" }
     })
   }
 })
@@ -412,25 +413,25 @@ router.delete("/me/contacts/:friendId", authenticateToken, async (req, res) => {
     const contact = await UserContact.findOne({
       where: {
         user_id: req.user.user_id,
-        friend_id: friendId,
-      },
+        friend_id: friendId
+      }
     })
 
     if (!contact) {
       return res.status(404).json({
-        error: { message: "Contact not found" },
+        error: { message: "Contact not found" }
       })
     }
 
     await contact.destroy()
 
     res.json({
-      message: "Contact removed successfully",
+      message: "Contact removed successfully"
     })
   } catch (error) {
     console.error("Remove contact error:", error)
     res.status(500).json({
-      error: { message: "Failed to remove contact" },
+      error: { message: "Failed to remove contact" }
     })
   }
 })
@@ -444,14 +445,14 @@ router.post("/me/blocked/:userId", authenticateToken, async (req, res) => {
     const user = await User.findByPk(userId)
     if (!user) {
       return res.status(404).json({
-        error: { message: "User not found" },
+        error: { message: "User not found" }
       })
     }
 
     // Check if user is trying to block themselves
     if (Number.parseInt(userId) === req.user.user_id) {
       return res.status(400).json({
-        error: { message: "Cannot block yourself" },
+        error: { message: "Cannot block yourself" }
       })
     }
 
@@ -459,20 +460,20 @@ router.post("/me/blocked/:userId", authenticateToken, async (req, res) => {
     const existingBlock = await BlockedUser.findOne({
       where: {
         user_id: req.user.user_id,
-        blocked_user_id: userId,
-      },
+        blocked_user_id: userId
+      }
     })
 
     if (existingBlock) {
       return res.status(409).json({
-        error: { message: "User already blocked" },
+        error: { message: "User already blocked" }
       })
     }
 
     // Block user
     await BlockedUser.create({
       user_id: req.user.user_id,
-      blocked_user_id: userId,
+      blocked_user_id: userId
     })
 
     // Remove from contacts if exists
@@ -480,18 +481,18 @@ router.post("/me/blocked/:userId", authenticateToken, async (req, res) => {
       where: {
         [Op.or]: [
           { user_id: req.user.user_id, friend_id: userId },
-          { user_id: userId, friend_id: req.user.user_id },
-        ],
-      },
+          { user_id: userId, friend_id: req.user.user_id }
+        ]
+      }
     })
 
     res.status(201).json({
-      message: "User blocked successfully",
+      message: "User blocked successfully"
     })
   } catch (error) {
     console.error("Block user error:", error)
     res.status(500).json({
-      error: { message: "Failed to block user" },
+      error: { message: "Failed to block user" }
     })
   }
 })
@@ -504,25 +505,25 @@ router.delete("/me/blocked/:userId", authenticateToken, async (req, res) => {
     const blockedUser = await BlockedUser.findOne({
       where: {
         user_id: req.user.user_id,
-        blocked_user_id: userId,
-      },
+        blocked_user_id: userId
+      }
     })
 
     if (!blockedUser) {
       return res.status(404).json({
-        error: { message: "User not blocked" },
+        error: { message: "User not blocked" }
       })
     }
 
     await blockedUser.destroy()
 
     res.json({
-      message: "User unblocked successfully",
+      message: "User unblocked successfully"
     })
   } catch (error) {
     console.error("Unblock user error:", error)
     res.status(500).json({
-      error: { message: "Failed to unblock user" },
+      error: { message: "Failed to unblock user" }
     })
   }
 })
@@ -539,12 +540,12 @@ router.get("/me/blocked", authenticateToken, async (req, res) => {
         {
           model: User,
           as: "blockedUser",
-          attributes: { exclude: ["password"] },
-        },
+          attributes: { exclude: ["password"] }
+        }
       ],
       limit: Number.parseInt(limit),
       offset,
-      order: [["created_at", "DESC"]],
+      order: [["created_at", "DESC"]]
     })
 
     res.json({
@@ -552,20 +553,20 @@ router.get("/me/blocked", authenticateToken, async (req, res) => {
         blocked_users: blockedUsers.map((bu) => ({
           block_id: bu.block_id,
           user: bu.blockedUser,
-          blocked_at: bu.created_at,
+          blocked_at: bu.created_at
         })),
         pagination: {
           current_page: Number.parseInt(page),
           total_pages: Math.ceil(count / Number.parseInt(limit)),
           total_count: count,
-          per_page: Number.parseInt(limit),
-        },
-      },
+          per_page: Number.parseInt(limit)
+        }
+      }
     })
   } catch (error) {
     console.error("Get blocked users error:", error)
     res.status(500).json({
-      error: { message: "Failed to get blocked users" },
+      error: { message: "Failed to get blocked users" }
     })
   }
 })

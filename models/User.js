@@ -8,7 +8,7 @@ const User = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      autoIncrement: true,
+      autoIncrement: true
     },
 
     username: {
@@ -16,30 +16,30 @@ const User = sequelize.define(
       allowNull: false,
       validate: {
         len: [3, 50],
-        isAlphanumeric: true,
-      },
+        isAlphanumeric: true
+      }
     },
 
     full_name: {
       type: DataTypes.STRING(100),
-      allowNull: true,
+      allowNull: true
     },
 
     gender: {
       type: DataTypes.ENUM("male", "female", "other", "unspecified"),
       defaultValue: "unspecified",
-      allowNull: false,
+      allowNull: false
     },
 
     is_private: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      allowNull: false,
+      allowNull: false
     },
 
     bio: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      allowNull: true
     },
 
     email: {
@@ -47,37 +47,37 @@ const User = sequelize.define(
       allowNull: false,
       validate: {
         isEmail: true,
-        len: [1, 100],
-      },
+        len: [1, 100]
+      }
     },
 
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
       validate: {
-        len: [6, 255],
-      },
+        len: [6, 255]
+      }
     },
 
     avatar_url: {
       type: DataTypes.TEXT,
       allowNull: true,
       validate: {
-        isUrl: true,
-      },
+        isUrl: true
+      }
     },
 
     status: {
       type: DataTypes.ENUM("online", "offline", "busy"),
       defaultValue: "offline",
-      allowNull: false,
+      allowNull: false
     },
 
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      allowNull: false,
-    },
+      allowNull: false
+    }
   },
   {
     tableName: "users",
@@ -95,14 +95,14 @@ const User = sequelize.define(
           const salt = await bcrypt.genSalt(12)
           user.password = await bcrypt.hash(user.password, salt)
         }
-      },
+      }
     },
 
     indexes: [
       { unique: true, fields: ["username"] },
-      { unique: true, fields: ["email"] },
-    ],
-  },
+      { unique: true, fields: ["email"] }
+    ]
+  }
 )
 
 User.prototype.comparePassword = async function (candidatePassword) {

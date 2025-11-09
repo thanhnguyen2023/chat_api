@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 require("dotenv").config()
 const express = require("express")
 const http = require("http")
@@ -18,7 +19,7 @@ const conversationRoutes = require("./routes/conversations")
 const messageRoutes = require("./routes/messages")
 const uploadRoutes = require("./routes/upload")
 const notificationRoutes = require("./routes/notifications")
-const followRoutes = require("./routes/follow")
+// const followRoutes = require("./routes/follow")
 const postRautes = require("./routes/postRautes")
 
 // Import socket handlers
@@ -59,7 +60,7 @@ app.use("/api/conversations", conversationRoutes)
 app.use("/api/messages", messageRoutes)
 app.use("/api/upload", uploadRoutes)
 app.use("/api/notifications", notificationRoutes)
-app.use("/api/follow", followRoutes)
+// app.use("/api/follow", followRoutes)
 app.use("/api/posts", postRautes)
 
 // Health check endpoint
