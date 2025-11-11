@@ -68,12 +68,19 @@ const toggleLikePost = async (user_id, post_id) => {
 
   if (existingLike) {
     await existingLike.destroy()
-    return { liked: false, message: "Post unliked." }
   } else {
     await PostLike.create({ user_id, post_id })
-    return { liked: true, message: "Post liked." }
+  }
+  const [[{ likeCount }]] = await sequelize.query(
+    `SELECT COUNT(*) AS likeCount FROM post_likes WHERE post_id = ${post_id}`
+  )
+  return {
+    liked: !existingLike,
+    message: existingLike ? "Post unliked." : "Post liked.",
+    likeCount: parseInt(likeCount, 10)
   }
 }
+
 
 /**
  * Thêm bình luận vào bài viết
@@ -338,26 +345,34 @@ const getFeedPosts = async (userId, page = 1, limit = 10) => {
         // TODO: Thêm logic lọc theo danh sách người dùng đang follow ở đây
       },
       attributes: {
-        // Lấy tất cả các thuộc tính của Post và thêm các cột tổng hợp
         include: [
-          // Đếm tổng số likes (sử dụng alias 'likes')
-          [sequelize.fn("COUNT", sequelize.col("likes.post_id")), "likeCount"],
-          // Đếm tổng số comments (sử dụng alias 'comments')
-          [sequelize.fn("COUNT", sequelize.col("comments.post_id")), "commentCount"],
-          // Kiểm tra xem người dùng hiện tại đã like bài viết này chưa
           [
-            // Dùng EXISTS subquery để kiểm tra sự tồn tại của PostLike
-            sequelize.literal(`EXISTS (SELECT 1 FROM post_likes WHERE post_likes.post_id = Post.post_id AND post_likes.user_id = ${userId})`),
+            sequelize.literal(`(
+        SELECT COUNT(*) FROM post_comments WHERE post_comments.post_id = Post.post_id
+      )`),
+            "commentCount"
+          ],
+          [
+            sequelize.literal(`(
+        SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = Post.post_id
+      )`),
+            "likeCount"
+          ],
+          [
+            sequelize.literal(`EXISTS (
+        SELECT 1 FROM post_likes WHERE post_likes.post_id = Post.post_id AND post_likes.user_id = ${userId}
+      )`),
             "isLiked"
           ],
-          // Kiểm tra xem người dùng hiện tại đã lưu bài viết này chưa
           [
-            // Dùng EXISTS subquery để kiểm tra sự tồn tại của PostSave
-            sequelize.literal(`EXISTS (SELECT 1 FROM post_saves WHERE post_saves.post_id = Post.post_id AND post_saves.user_id = ${userId})`),
+            sequelize.literal(`EXISTS (
+        SELECT 1 FROM post_saves WHERE post_saves.post_id = Post.post_id AND post_saves.user_id = ${userId}
+      )`),
             "isSaved"
           ]
         ]
-      },
+      }
+      ,
       include: [
         {
           model: User,

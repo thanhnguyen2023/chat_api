@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 const postService = require("../services/postService")
-
+const {
+  PostComment,
+} = require("../models")
 const createPost = async (req, res) => {
   try {
     const user_id = req.user.user_id
@@ -36,7 +38,8 @@ const addComment = async (req, res) => {
       parseInt(post_id),
       commentData
     )
-    res.status(201).json(newComment)
+    const cmtCount = await PostComment.count({ where: { post_id } })
+    res.status(201).json({ newComment, commnetCount: cmtCount })
   } catch (error) {
     res.status(500).json({ error: { message: error.message } })
   }
