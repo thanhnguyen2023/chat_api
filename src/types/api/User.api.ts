@@ -1,14 +1,13 @@
 import { UserDto } from "../dtos/User.dto";
 
-export type LoginApiRespone =  {
+export type LoginApiRespone = {
   data: {
-    user: UserDto,
-    token: string,
-    expires_in: string
-    
+    user: UserDto;
+    token: string;
+    expires_in: string;
   };
   message: string;
-}
+};
 
 export type GetInfoApi = {
   data: {

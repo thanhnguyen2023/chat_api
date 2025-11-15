@@ -13,3 +13,9 @@ export type GetMessageInConversation = {
   };
 };
 
+export type ResponePostMessage = {
+  message: string;
+  data: {
+    message: MessageDto;
+  };
+};

@@ -39,7 +39,7 @@ export function useAPI() {
         setToken(data.data.token);
       }
     },
-    [baseUrl, setUser, setToken]
+    []
   );
 
   const request = useCallback(
@@ -63,14 +63,14 @@ export function useAPI() {
       throw new Error(error);
      }
     },
-    [baseUrl, headers, intercepterResponse]
+    []
   );
 
   const get = useCallback(
     (endpoint: string, options: RequestInit = {}) => {
       return request(endpoint, { ...options, method: "GET" });
     },
-    [request]
+    []
   );
 
   const post = useCallback(
@@ -81,7 +81,7 @@ export function useAPI() {
         body: JSON.stringify(body),
       });
     },
-    [request]
+    []
   );
 
   return { get, post, setToken };
