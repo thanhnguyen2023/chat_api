@@ -131,7 +131,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     if (!files || files.length === 0)
       return res.status(400).json({ error: { message: "No files uploaded" } })
 
-    // Kiểm tra message có tồn tại không
+    // Kiểm tra message + participant
     const message = await Message.findByPk(messageId, {
       include: [
         {
@@ -150,26 +150,21 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     })
 
     if (!message) {
-      // Clean up uploaded files if message not found
       files.forEach((f) => fs.unlink(f.path, () => {}))
       return res.status(404).json({ error: { message: "Message not found or access denied" } })
     }
 
-    if (message.sender_id !== req.user.user_id) {
-      // Clean up uploaded files
-      files.forEach((f) => fs.unlink(f.path, () => {}))
-      return res.status(403).json({ error: { message: "Can only add attachments to your own messages" } })
-    }
+    // ❗ ĐÃ BỎ CHECK: sender_id !== user_id
+    // User chỉ cần thuộc conversation là được phép upload
 
-    // === 🧠 Check NSFW cho từng ảnh ===
+    // === Check NSFW ===
     for (const file of files) {
       if (file.mimetype.startsWith("image/")) {
         const nsfwScore = await checkNSFW(file.path)
-        console.log(`🧩 [${file.originalname}] NSFW Score =`, nsfwScore)
         if (nsfwScore > 0.6) {
           fs.unlink(file.path, () => {})
           return res.status(400).json({
-              error: { message: "Ảnh có nội dung không phù hợp" },
+            error: { message: "Ảnh có nội dung không phù hợp" }
           })
         }
       }
@@ -191,38 +186,14 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
 
     res.status(201).json({
       message: "✅ Files uploaded successfully",
-      data: attachments.map((a) => ({
-        attachment_id: a.attachment_id,
-        file_url: a.file_url,
-        file_type: a.file_type,
-        file_size: a.file_size,
-        uploaded_at: a.uploaded_at,
-      })),
+      data: attachments
     })
+
   } catch (error) {
     console.error("Upload error:", error)
+    if (req.files) req.files.forEach((f) => fs.unlink(f.path, () => {}))
 
-    // Clean up uploaded files on error
-    if (req.files) {
-      req.files.forEach((f) => fs.unlink(f.path, () => {}))
-    }
-
-    if (error instanceof multer.MulterError) {
-      if (error.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({
-          error: { message: "File too large" }
-        })
-      }
-      if (error.code === "LIMIT_FILE_COUNT") {
-        return res.status(400).json({
-          error: { message: "Too many files" }
-        })
-      }
-    }
-
-    res.status(500).json({
-      error: { message: "Upload failed" }
-    })
+    res.status(500).json({ error: { message: "Upload failed" } })
   }
 })
 

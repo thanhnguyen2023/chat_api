@@ -7,9 +7,63 @@ const { authenticateToken } = require("../middleware/auth")
 const router = express.Router()
 
 // Get my profile
+// router.get("/me", authenticateToken, async (req, res) => {
+//   try {
+//     res.json({ data: req.user })
+//   } catch (error) {
+//     console.error("Get profile error:", error)
+//     res.status(500).json({ error: { message: "Failed to get profile" } })
+//   }
+// })
+
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-    res.json({ data: req.user })
+    const userId = req.user.user_id
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    // Followers count
+    const followersCount = await UserContact.count({
+      where: { friend_id: userId }
+    })
+
+    // Following count
+    const followingCount = await UserContact.count({
+      where: { user_id: userId }
+    })
+
+    const blockedCount = await BlockedUser.count({
+      where: { user_id: userId }
+    })
+
+    const following = await UserContact.findAll({
+      where: { user_id: userId }
+    })
+    const followers = await UserContact.findAll({
+      where: { friend_id: userId }
+    })
+
+    const followingIds = new Set(following.map(f => f.friend_id))
+    const followerIds = new Set(followers.map(f => f.user_id))
+    const mutualCount = [...followingIds].filter(id => followerIds.has(id)).length
+
+    res.json({
+      data: {
+        user,
+        stats: {
+          followers: followersCount,
+          following: followingCount,
+          mutual_friends: mutualCount,
+          blocked: blockedCount
+        }
+      }
+    })
   } catch (error) {
     console.error("Get profile error:", error)
     res.status(500).json({ error: { message: "Failed to get profile" } })
