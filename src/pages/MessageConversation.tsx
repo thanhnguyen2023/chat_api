@@ -1,21 +1,5 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  FormEvent,
-  ChangeEvent,
-} from "react";
-import {
-  Phone,
-  Video,
-  Info,
-  Smile,
-  Mic,
-  Image,
-  Heart,
-  Send,
-  SendHorizontal,
-} from "lucide-react";
+import React, { useState, useEffect, useRef, FormEvent } from "react";
+import { Phone, Video, Info, Smile, Mic, Image, Heart } from "lucide-react";
 import { useAPI } from "../hooks/useApi";
 import {
   GetMessageInConversation,
@@ -35,16 +19,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useGlobal } from "@/hooks/useGlobal";
+import { useSocket } from "@/hooks/useSocket";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Message } from "@/types/entites/Message";
-import { Input } from "@/components/ui/input";
+
 import { ImageZoom } from "@/components/ui/shadcn-io/image-zoom";
-import { Dialog } from "@radix-ui/react-dialog";
+
 import { VideoZoom } from "@/components/video/VideoRoom";
 import { toast } from "sonner";
 import { ErrorAPI } from "@/types/api/Error.api";
@@ -59,6 +42,8 @@ type UserTyping = {
 };
 const MessageConversation = ({ conversation }: MessageConversationProps) => {
   const [messageInput, setMessageInput] = useState(""); // message nhập
+  // console.log("conversation >>> ", conversation);
+  console.log("route change");
   const [isLoadingMessage, setIsLoadingMessage] = useState<boolean>(true);
   const [userTyping, setUserTyping] = useState<UserTyping>({});
   const [messages, setMessages] = useState<MessageDto[]>([]);
@@ -69,7 +54,7 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   const { user_id, avatar_url, username } = useUserStore(); // user đăng nhập
 
   const { get, setToken, post } = useAPI();
-  const { socket } = useGlobal();
+  const { socket } = useSocket();
   const token = localStorage.getItem("token");
 
   // const [isSelectOpenEmoji, setIsSelectOpenEmoji] = useState<boolean>(false);
@@ -118,14 +103,16 @@ const MessageConversation = ({ conversation }: MessageConversationProps) => {
   }, [conversation.conversation_id]);
 
   useEffect(() => {
-    if (messageInput) {
-      socket.emit("typing_start", {
-        conversation_id: conversation.conversation_id,
-      });
-    } else {
-      socket.emit("typing_stop", {
-        conversation_id: conversation.conversation_id,
-      });
+    if (socket) {
+      if (messageInput) {
+        socket.emit("typing_start", {
+          conversation_id: conversation.conversation_id,
+        });
+      } else {
+        socket.emit("typing_stop", {
+          conversation_id: conversation.conversation_id,
+        });
+      }
     }
   }, [messageInput]);
 

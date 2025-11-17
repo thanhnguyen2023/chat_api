@@ -1,9 +1,8 @@
-
-import { GlobalContext } from "@/context/SocketContext";
+import { SocketContext } from "@/context/SocketContext";
 import { useContext } from "react";
 
-export const useGlobal = () => {
-  const context = useContext(GlobalContext);
+export const useSocket = () => {
+  const context = useContext(SocketContext);
   if (!context) {
     throw new Error("Global must be used within a Product Provider");
   }

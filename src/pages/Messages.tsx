@@ -22,44 +22,48 @@ import { ConversationDto } from "@/types/dtos/Conversation.dto";
 import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import { toast } from "sonner";
 import { useIsMobile } from "../hooks/use-mobile";
-import { useGlobal } from "@/hooks/useGlobal";
+import { useSocket } from "@/hooks/useSocket";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import PopupSearchUser from "@/components/search/PopupSearchUser";
 
 const Messages = () => {
-  // const { username } = useParams();
+  const { conversation_id } = useParams();
+  // console.log("param", conversation_id);
   const { username, user_id } = useUserStore();
-  const [conversations, setConversations] = useState<ConversationDto[]>([]);
-  const [isLoadingSidebarChat, setIsLoadingSidebarchat] =
-    useState<boolean>(true);
   const access_token = localStorage.getItem("token");
-  const { get, setToken } = useAPI();
-  const { socket } = useGlobal();
-  const isMobile = useIsMobile();
+  const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationDto>(null);
+  const [isLoadingSidebarChat, setIsLoadingSidebarchat] =
+    useState<boolean>(true);
+
+  const { get, setToken } = useAPI();
+  const { socket } = useSocket();
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  // Helper
+  const getOtherUser = (conv: ConversationDto) => {
+    if (conv.is_group)
+      return {
+        username: conv.conversation_name,
+        avatar_url: "",
+        status: "online",
+      };
+    return (
+      conv.participants.find((p) => p.user_id !== user_id) ||
+      conv.participants[0]
+    );
+  };
   // console.log("Messages.tsx  | user_id " + user_id);
 
-  if (socket) {
-    socket.on("status_updated", (data) => {
-      // console.log("có người mới online");
-      // console.log("Messages.tsx || data : ", data);
-      getConversation();
-    });
-    socket.on("user_status_changed", (data) => {
-      // console.log("có người mới online hoặc offline");
-      getConversation();
-    });
-  }
-  const getConversation = async () => {
+  const getConversations = async () => {
     try {
-      // console.log(
-      //   "pages/Message.tsx : data api " + JSON.stringify(dataApiRespone)
-      // );
-
       setToken(access_token);
       const dataApiRespone: ApiConversationRespone = await get(
         "/api/conversations"
@@ -72,10 +76,47 @@ const Messages = () => {
     }
   };
   useEffect(() => {
-    setTimeout(() => {
-      getConversation();
-    }, 1500);
+    if (socket) {
+      socket.on("status_updated", (data) => {
+        // console.log("có người mới online");
+        // console.log("Messages.tsx || data : ", data);
+        getConversations();
+      });
+      socket.on("user_status_changed", (data) => {
+        // console.log("có người mới online hoặc offline");
+        getConversations();
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("status_updated");
+        socket.off("user_status_changed");
+      }
+    };
   }, []);
+  useEffect(() => {
+    setTimeout(() => {
+      getConversations();
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    const getInfoConversation = async () => {
+      try {
+        setToken(access_token);
+        // console.log("<<<<"access_token);
+        const dataResponeGetInfoConversation = await get(
+          `/api/conversations/${conversation_id}`
+        );
+        setSelectedConversation(
+          dataResponeGetInfoConversation.data.conversation
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getInfoConversation();
+  }, [conversation_id]);
   return (
     <div className="flex border-t border-border h-screen overflow-hidden">
       {/* Sidebar Chat ( danh sách conversation) */}
@@ -146,18 +187,27 @@ const Messages = () => {
             </div>
             {/* section search */}
             {/* ở mobile thì ẩn search bar */}
-            <div
-              className={`${
-                isMobile && "hidden"
-              } flex items-center gap-2 bg-[whitesmoke] px-4 py-1 mb-4 rounded-full`}
-            >
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm"
-                className="bg-transparent outline-none h-[34px] py-1  text-sm w-full placeholder:text-muted-foreground"
-              />
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div
+                  className={`${
+                    isMobile && "hidden"
+                  } flex items-center gap-2 bg-[whitesmoke] px-4 py-1 mb-4 rounded-full`}
+                >
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm"
+                    className="bg-transparent outline-none h-[34px] py-1 text-sm w-full"
+                  />
+                </div>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-[425px]">
+                <PopupSearchUser />
+              </DialogContent>
+            </Dialog>
+
             {/* section list conversation */}
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
@@ -169,19 +219,19 @@ const Messages = () => {
               <div className={`space-y-1`}>
                 {conversations.map((conversation) => (
                   <Link
-                    to={`/messages/${conversation.conversation_name}`}
+                    to={`/messages/${conversation.conversation_id}`}
                     key={conversation.conversation_id}
                     className={`flex items-center gap-4 p-3 hover:bg-muted rounded-lg transition-colors ${
                       username === conversation.conversation_name
                         ? "bg-muted"
                         : ""
                     } ${isMobile && "justify-center"}`}
-                    onClick={() => {
-                      setSelectedConversation(conversation);
-                    }}
+                    // onClick={() => {
+                    //   setSelectedConversation(conversation);
+                    // }}
                   >
                     {/* hiển thị tên khi hover */}
-                    <Tooltip delayDuration={100}> 
+                    <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
                         <Avatar
                           className={`relative h-12 w-12 overflow-visible`}
@@ -228,7 +278,7 @@ const Messages = () => {
                       </TooltipTrigger>
                       <TooltipContent className="bg-black">
                         <p className="bg-black text-white text-xs">
-                         {conversation.is_group // nếu là group thì lấy tên của group
+                          {conversation.is_group // nếu là group thì lấy tên của group
                             ? conversation.conversation_name
                             : conversation.participants[0].user_id == user_id // không phải group thì private chat thì lấy tên người kia làm tiêu đề
                             ? conversation.participants[1].username
@@ -253,10 +303,16 @@ const Messages = () => {
                             ? " Chưa có tin nhắn nào"
                             : conversation.last_message.sender.user_id ===
                               user_id
-                            ? `Bạn: ${conversation.last_message.content}`
+                            ? `Bạn: ${
+                                conversation.last_message.content == "!@#"
+                                  ? "đã gửi ảnh"
+                                  : conversation.last_message.content
+                              }`
                             : conversation.last_message.sender.username +
                               ": " +
-                              conversation.last_message.content}
+                              conversation.last_message.content
+                            ? "đã gửi ảnh"
+                            : conversation.last_message.content}
                           {}
                         </p>
                       </div>
@@ -281,7 +337,7 @@ const Messages = () => {
 
       {/* Main Chat Area */}
       <div className="flex-[3] flex flex-col text-center text-muted-foreground">
-        {!selectedConversation ? (
+        {!selectedConversation || !conversation_id ? (
           <>
             <div className="flex flex-col my-auto">
               <div className={`${customClass["combo-flex"]}`}>

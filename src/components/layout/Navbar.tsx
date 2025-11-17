@@ -1,11 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Home, Search, Compass, Video, Heart, MessageSquare, PlusSquare, User } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import { CreatePostModal } from '@/components/modals/CreatePostModal';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Home,
+  Search,
+  Compass,
+  Video,
+  Heart,
+  MessageSquare,
+  PlusSquare,
+  User,
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/routes/AuthRoute";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { CreatePostModal } from "@/components/modals/CreatePostModal";
 
 const Navbar = () => {
   const { currentUser } = useAuth();

@@ -4,6 +4,7 @@ import React from "react";
 
 type Props = { children: React.ReactNode };
 
+// đang không dùng component này
 const ProtectedRoute = ({ children }: Props) => {
   const { isAuthenticated } = useUserStore();
   const location = useLocation();

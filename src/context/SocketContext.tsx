@@ -4,44 +4,37 @@ import { createContext, ReactNode, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 import { toast } from "sonner";
 
-interface GlobalContextType {
+interface SocketContextType {
   socket: Socket | undefined;
   setSocket: (socket: Socket | undefined) => void;
 }
-export const GlobalContext = createContext<GlobalContextType | undefined>(
+export const SocketContext = createContext<SocketContextType | undefined>(
   undefined
 );
 
-export const GlobalProvider = ({ children }: { children: ReactNode }) => {
-  const [socket, setSocket] = useState<Socket | undefined>();
-  const { user_id, access_token } = useUserStore();
-  // console.log("<SocketContext.tsx>: access_ token : ", access_token);
-  useEffect(() => {
-    const socket = configSocket(access_token);
-    socket.connect();
+export const SocketProvider = ({ children }: { children: ReactNode }) => {
+  const { access_token } = useUserStore();
+  const s = configSocket(access_token);
+  const [socket, setSocket] = useState<Socket>(s);
 
+  useEffect(() => {
+    socket.connect();
     socket.on("connect", () => {
-      setSocket(socket);
-      console.log("Socket connected:", socket.id);
+      console.log("Socket connected:", s.id);
     });
 
     socket.on("ping", (data) => {
-      console.log("socket event ping:", data);
+      console.log("socket ping:", data);
     });
-    
-    socket.on('error' , (data: { message: string }) => {
-      toast.error('Error socket: ' , {description : data.message});
-    })
+
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
       socket.disconnect();
     };
-  }, []);
+  }, [access_token]);
 
   return (
-    <GlobalContext.Provider value={{ setSocket, socket }}>
+    <SocketContext.Provider value={{ socket, setSocket }}>
       {children}
-    </GlobalContext.Provider>
+    </SocketContext.Provider>
   );
 };

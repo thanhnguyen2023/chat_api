@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SpinnerCustom } from "../loading/Spinner";
 import { LoginApiRespone } from "@/types/api/User.api";
-import { useGlobal } from "@/hooks/useGlobal";
+import { useSocket } from "@/hooks/useSocket";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
-  const {socket} = useGlobal();
+  const { socket } = useSocket();
   const [password, setPassword] = useState("");
   const [isFocusEmailInput, setIsFocusEmailInput] = useState<boolean>(false);
   const [isFocusPassInput, setIsFocusPassInput] = useState<boolean>(false);
@@ -47,7 +47,7 @@ const LoginForm = () => {
           position: "top-center",
         });
       }
-    },1500);
+    }, 1500);
   };
 
   return (
