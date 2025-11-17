@@ -280,6 +280,7 @@ router.get("/suggestions", authenticateToken, async (req, res) => {
 router.get("/:userId", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params
+    const myId = req.user.user_id
 
     const user = await User.findByPk(userId, {
       attributes: { exclude: ["password"] }
@@ -291,50 +292,40 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       })
     }
 
-    // Check if user is blocked
-    const isBlocked = await BlockedUser.findOne({
-      where: {
-        user_id: req.user.user_id,
-        blocked_user_id: userId
-      }
+    const followers = await UserContact.count({
+      where: { friend_id: userId }
     })
 
-    // 3️⃣ Tìm conversation_id 1-1 giữa 2 người
-    const myConversations = await Participant.findAll({
-      attributes: ["conversation_id"],
-      include: [
-        {
-          model: Conversation,
-          as: "conversation",
-          attributes: [],
-          where: { is_group: false }
-        }
-      ],
-      where: { user_id: req.user.user_id }
+    const following = await UserContact.count({
+      where: { user_id: userId }
     })
 
-    const conversationIds = myConversations.map(p => p.conversation_id)
-
-    const shared = await Participant.findOne({
-      where: {
-        user_id: userId,
-        conversation_id: { [Op.in]: conversationIds }
-      }
+    const myFollowing = await UserContact.findAll({
+      where: { user_id: myId },
+      attributes: ["friend_id"]
     })
 
-    const conversationId = shared ? shared.conversation_id : null
+    const theirFollowing = await UserContact.findAll({
+      where: { user_id: userId },
+      attributes: ["friend_id"]
+    })
 
-    // Check private profile
+    const myList = myFollowing.map(x => x.friend_id)
+    const theirList = theirFollowing.map(x => x.friend_id)
+
+    const mutualCount = myList.filter(id => theirList.includes(id)).length
+
     let userData = user.toJSON()
-    if (user.is_private) {
+
+    if (user.is_private && myId !== Number(userId)) {
       const isFriend = await UserContact.findOne({
         where: {
-          user_id: req.user.user_id,
+          user_id: myId,
           friend_id: userId
         }
       })
 
-      if (!isFriend && req.user.user_id !== Number.parseInt(userId)) {
+      if (!isFriend) {
         userData = {
           user_id: user.user_id,
           username: user.username,
@@ -348,10 +339,14 @@ router.get("/:userId", authenticateToken, async (req, res) => {
     res.json({
       data: {
         user: userData,
-        is_blocked: !!isBlocked,
-        conversation_id: conversationId
+        stats: {
+          followers,
+          following,
+          mutual_friends: mutualCount,
+        }
       }
     })
+
   } catch (error) {
     console.error("Get user error:", error)
     res.status(500).json({
