@@ -138,7 +138,7 @@ const getPostDetails = async (user_id, post_id) => {
           sequelize.literal(
             "(SELECT COUNT(*) FROM post_comments WHERE post_comments.post_id = Post.post_id)"
           ),
-          "commentsCount"
+          "commentCount"
         ],
         [
           sequelize.literal(
@@ -185,13 +185,17 @@ const getPostDetails = async (user_id, post_id) => {
   const nestedComments = nestComments(rawComments.map(c => c.get({ plain: true })))
 
   // Kiểm tra trạng thái lưu
-  const isSaved = await PostSave.findOne({ where: { user_id, post_id } })
-
+  const [isSaved, isLiked] = await Promise.all([
+    PostSave.findOne({ where: { user_id, post_id } }),
+    PostLike.findOne({ where: { user_id, post_id } })
+  ])
   return {
     ...PostData.get({ plain: true }),
     // Ghi đè comments bằng cấu trúc lồng ghép mới
     comments: nestedComments,
-    isSaved: Boolean(isSaved)
+    isSaved: Boolean(isSaved),
+    isLiked: Boolean(isLiked)
+
   }
 }
 
