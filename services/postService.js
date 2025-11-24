@@ -10,6 +10,8 @@ const {
 } = require("../models")
 
 const { Op } = require("sequelize")
+const { cleanText } = require("../utils/filter"); 
+
 
 const nestComments = (comments, parentId = null) => {
   const nestedComments = []
@@ -86,12 +88,14 @@ const toggleLikePost = async (user_id, post_id) => {
  * Thêm bình luận vào bài viết
  */
 const addComment = async (user_id, post_id, commentData) => {
+  const cleanedContent = cleanText(commentData.content);
+
   const newComment = await PostComment.create({
     user_id,
     post_id,
-    content: commentData.content,
+    content: cleanedContent,
     parent_comment_id: commentData.parent_comment_id || null
-  })
+  });
 
   return PostComment.findByPk(newComment.comment_id, {
     include: [
@@ -101,7 +105,7 @@ const addComment = async (user_id, post_id, commentData) => {
         attributes: ["user_id", "username", "avatar_url"]
       }
     ]
-  })
+  });
 }
 
 /**
