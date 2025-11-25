@@ -11,6 +11,7 @@
   "dependencies": {
     "@babel/runtime": "^7.22.10",
     "autoprefixer": "^10.4.20",
+    "bad-words": "^3.0.4",
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",
     "cmdk": "1.0.4",

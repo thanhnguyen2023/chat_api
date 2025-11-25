@@ -161,7 +161,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
     for (const file of files) {
       if (file.mimetype.startsWith("image/")) {
         const nsfwScore = await checkNSFW(file.path)
-        if (nsfwScore > 0.6) {
+        if (nsfwScore > 0.2) {
           fs.unlink(file.path, () => {})
           return res.status(400).json({
             error: { message: "Ảnh có nội dung không phù hợp" }

@@ -3,8 +3,11 @@ const { Op } = require("sequelize")
 const { Message, Conversation, Participant, User, Attachment, MessageStatus, BlockedUser } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
 const { validate, schemas } = require("../utils/validation")
+const { cleanText } = require("../utils/filter");
+
 
 const router = express.Router()
+
 
 // Get messages for a conversation
 router.get("/conversation/:conversationId", authenticateToken, async (req, res) => {
@@ -89,6 +92,15 @@ router.post("/", authenticateToken, validate(schemas.sendMessage), async (req, r
   try {
     const { content, conversation_id } = req.body
 
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        error: { message: "Message content cannot be empty" }
+      })
+    }
+
+    const cleanContent = cleanText(content);
+
+
     // Check if user is participant
     const participant = await Participant.findOne({
       where: {
@@ -146,8 +158,9 @@ router.post("/", authenticateToken, validate(schemas.sendMessage), async (req, r
     const message = await Message.create({
       conversation_id,
       sender_id: req.user.user_id,
-      content,
+      content: cleanContent,
     })
+
 
     // Create message status for each participant (except sender)
     const statusPromises = otherParticipantIds.map((userId) =>
@@ -305,7 +318,7 @@ router.put("/:messageId", authenticateToken, async (req, res) => {
       })
     }
 
-    await message.update({ content })
+    await message.update({ content: cleanText(content) })
 
     res.json({
       message: "Message updated successfully",
