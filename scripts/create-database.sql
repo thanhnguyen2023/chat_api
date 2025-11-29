@@ -1,14 +1,16 @@
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(50) UNIQUE,
+    email VARCHAR(100) UNIQUE,
+    phone_number VARCHAR(15) UNIQUE,
     password VARCHAR(255) NOT NULL,
     avatar_url TEXT,
     status ENUM('online', 'offline', 'busy') DEFAULT 'offline',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_email (email),
+    INDEX idx_phone (phone_number),
     INDEX idx_status (status)
 );
 

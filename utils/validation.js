@@ -14,6 +14,19 @@ const schemas = {
     password: Joi.string().required(),
   }),
 
+  registerPhone: Joi.object({
+    phone_number: Joi.string().pattern(/^[0-9]{10,11}$/).required().messages({
+      "string.pattern.base": "Số điện thoại không hợp lệ"
+    }),
+    password: Joi.string().min(6).required(),
+    full_name: Joi.string().required()
+  }),
+
+  loginPhone: Joi.object({
+    phone_number: Joi.string().required(),
+    password: Joi.string().required()
+  }),
+
   updateProfile: Joi.object({
     username: Joi.string().alphanum().min(3).max(50).optional(),
     avatar_url: Joi.string().uri().optional(),
