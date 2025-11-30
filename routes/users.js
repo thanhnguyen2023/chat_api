@@ -295,6 +295,11 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       })
     }
 
+    // Check mình có follow họ không
+    const isFollowing = await UserContact.count({
+      where: { user_id: myId, friend_id: userId }
+    })
+
     const followers = await UserContact.count({
       where: { friend_id: userId }
     })
@@ -312,6 +317,27 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       where: { user_id: userId },
       attributes: ["friend_id"]
     })
+        // 3️⃣ Tìm conversation_id 1-1 giữa 2 người
+    const myConversations = await Participant.findAll({
+      attributes: ["conversation_id"],
+      include: [
+        {
+          model: Conversation,
+          as: "conversation",
+          attributes: [],
+          where: { is_group: false }
+        }
+      ],
+      where: { user_id: req.user.user_id }
+    })
+    const conversationIds = myConversations.map(p => p.conversation_id)
+        const shared = await Participant.findOne({
+      where: {
+        user_id: userId,
+        conversation_id: { [Op.in]: conversationIds }
+      }
+    })
+    const conversationId = shared ? shared.conversation_id : null
 
     const myList = myFollowing.map(x => x.friend_id)
     const theirList = theirFollowing.map(x => x.friend_id)
@@ -320,6 +346,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
 
     let userData = user.toJSON()
 
+    // Check private account
     if (user.is_private && myId !== Number(userId)) {
       const isFriend = await UserContact.findOne({
         where: {
@@ -346,7 +373,9 @@ router.get("/:userId", authenticateToken, async (req, res) => {
           followers,
           following,
           mutual_friends: mutualCount,
-        }
+        },
+        conversation_id: conversationId,
+        is_following: isFollowing > 0   // 👈 THÊM TRƯỜNG NÀY
       }
     })
 
