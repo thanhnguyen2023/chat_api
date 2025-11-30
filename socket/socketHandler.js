@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken")
 const { User, Message, Conversation, Participant, MessageStatus, Notification, BlockedUser } = require("../models")
 const { Op } = require("sequelize")
+const { cleanText } = require("../utils/filter");
 
 // Store active connections
 const activeUsers = new Map() // userId -> socketId
@@ -145,12 +146,15 @@ const socketHandler = (io) => {
     // Handle sending messages
     socket.on("send_message", async (data) => {
       try {
-        const { conversation_id, content } = data
+        const { conversation_id, content } = data;
+
+        // Làm sạch văn bản
+        const cleanContent = cleanText(content);
 
         // Validate input
-        if (!conversation_id || !content || content.trim().length === 0) {
-          socket.emit("error", { message: "Invalid message data" })
-          return
+        if (!conversation_id || !cleanContent || cleanContent.length === 0) {
+          socket.emit("error", { message: "Invalid message data" });
+          return;
         }
 
         // Check if user is participant
@@ -159,14 +163,13 @@ const socketHandler = (io) => {
             conversation_id,
             user_id: socket.userId,
           },
-        })
+        });
 
         if (!participant) {
-          socket.emit("error", { message: "Access denied to this conversation" })
-          return
+          socket.emit("error", { message: "Access denied to this conversation" });
+          return;
         }
 
-        // Get conversation and other participants
         const conversation = await Conversation.findByPk(conversation_id, {
           include: [
             {
@@ -181,49 +184,48 @@ const socketHandler = (io) => {
               ],
             },
           ],
-        })
+        });
 
         if (!conversation) {
-          socket.emit("error", { message: "Conversation not found" })
-          return
+          socket.emit("error", { message: "Conversation not found" });
+          return;
         }
 
-        // Check for blocked users
+        // Check blocked
         const otherParticipantIds = conversation.participants
           .filter((p) => p.user_id !== socket.userId)
-          .map((p) => p.user_id)
+          .map((p) => p.user_id);
 
         const blockedBy = await BlockedUser.findAll({
           where: {
             user_id: { [Op.in]: otherParticipantIds },
             blocked_user_id: socket.userId,
           },
-        })
+        });
 
         if (blockedBy.length > 0) {
-          socket.emit("error", { message: "Cannot send message - you are blocked" })
-          return
+          socket.emit("error", { message: "Cannot send message - you are blocked" });
+          return;
         }
 
         // Create message
         const message = await Message.create({
           conversation_id,
           sender_id: socket.userId,
-          content,
-        })
+          content: cleanContent, // <--- dùng nội dung đã làm sạch
+        });
 
-        // Create message status for each participant (except sender)
+        // Create message statuses
         const statusPromises = otherParticipantIds.map((userId) =>
           MessageStatus.create({
             message_id: message.message_id,
             receiver_id: userId,
             status: "sent",
-          }),
-        )
+          })
+        );
+        await Promise.all(statusPromises);
 
-        await Promise.all(statusPromises)
-
-        // Get complete message with relations
+        // Load message data
         const completeMessage = await Message.findByPk(message.message_id, {
           include: [
             {
@@ -243,34 +245,32 @@ const socketHandler = (io) => {
               ],
             },
           ],
-        })
+        });
 
-        // Broadcast message to conversation room
-        const roomName = `conversation_${conversation_id}`
+        const roomName = `conversation_${conversation_id}`;
         io.to(roomName).emit("new_message", {
           message: completeMessage,
           conversation_id,
-        })
+        });
 
-        // Send notifications to offline users
+        // Offline notifications
         for (const participantId of otherParticipantIds) {
-          const isOnline = activeUsers.has(participantId)
-          if (!isOnline) {
-            const participant = conversation.participants.find((p) => p.user_id === participantId)
+          if (!activeUsers.has(participantId)) {
             const notificationContent = conversation.is_group
               ? `New message in ${conversation.conversation_name || "group chat"} from ${socket.user.username}`
-              : `New message from ${socket.user.username}`
+              : `New message from ${socket.user.username}`;
 
-            await createNotification(participantId, "new_message", notificationContent)
+            await createNotification(participantId, "new_message", notificationContent);
           }
         }
 
-        console.log(`Message sent in conversation ${conversation_id} by user ${socket.userId}`)
+        console.log(`Message sent in conversation ${conversation_id} by user ${socket.userId}`);
       } catch (error) {
-        console.error("Send message error:", error)
-        socket.emit("error", { message: "Failed to send message" })
+        console.error("Send message error:", error);
+        socket.emit("error", { message: "Failed to send message" });
       }
-    })
+    });
+
 
     // Handle typing indicators
     socket.on("typing_start", async (data) => {
