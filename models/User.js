@@ -13,10 +13,9 @@ const User = sequelize.define(
 
     username: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: true,
       validate: {
-        len: [3, 50],
-        isAlphanumeric: true
+        len: [3, 50]
       }
     },
 
@@ -44,10 +43,19 @@ const User = sequelize.define(
 
     email: {
       type: DataTypes.STRING(100),
-      allowNull: false,
+      allowNull: true,
       validate: {
         isEmail: true,
         len: [1, 100]
+      }
+    },
+
+    phone_number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+      validate: {
+        is: /^[0-9]{10,15}$/
       }
     },
 
@@ -101,14 +109,14 @@ const User = sequelize.define(
     indexes: [
       {
         unique: true,
-        fields: ["username"],
+        fields: ["username"]
       },
       {
         unique: true,
-        fields: ["email"],
-      },
-    ],
-  },
+        fields: ["email"]
+      }
+    ]
+  }
 )
 
 User.prototype.comparePassword = async function (candidatePassword) {

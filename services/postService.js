@@ -640,4 +640,3 @@ module.exports = {
   getExploreGridPosts,
   getUserGridPosts
 }
-

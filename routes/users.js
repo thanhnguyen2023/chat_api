@@ -623,5 +623,74 @@ router.get("/me/blocked", authenticateToken, async (req, res) => {
   }
 })
 
+// Api lấy danh bạ người dùng
+router.post("/suggestions/contacts", authenticateToken, async (req, res) => {
+  try {
+    // Client gửi lên một mảng các số điện thoại cần tìm
+    const { phone_numbers } = req.body
+
+    if (!Array.isArray(phone_numbers) || phone_numbers.length === 0) {
+      return res.status(400).json({
+        error: { message: "List of phone numbers is required." }
+      })
+    }
+
+    const userId = req.user.user_id
+
+    // 1. Lấy danh sách ID bạn bè hiện tại của user để loại trừ
+    const existingContacts = await UserContact.findAll({
+      where: { user_id: userId },
+      attributes: ["friend_id"]
+    })
+    const existingFriendIds = existingContacts.map((c) => c.friend_id)
+
+    // 2. Tìm kiếm users khớp với danh sách SĐT CÓ ĐĂNG KÝ
+    const usersFound = await User.findAll({
+      where: {
+        phone_number: { [Op.in]: phone_numbers }, // SĐT nằm trong danh sách gửi lên
+        user_id: { [Op.ne]: userId }, // Loại trừ chính mình
+        [Op.and]: [
+          { user_id: { [Op.notIn]: existingFriendIds } } // Loại trừ những người đã là bạn
+        ]
+      },
+      // Chỉ lấy thông tin cần thiết, loại bỏ password và các trường không liên quan
+      attributes: ["user_id", "username", "full_name", "avatar_url", "status", "phone_number"]
+    })
+
+    // 3. Chuẩn bị dữ liệu trả về: ánh xạ từng SĐT đã gửi lên với user tìm được
+    const result = phone_numbers.map((number) => {
+      // Tìm user tương ứng với SĐT trong kết quả
+      const foundUser = usersFound.find(user => user.phone_number === number)
+
+      // Trả về cả SĐT và thông tin user nếu tìm thấy
+      if (foundUser) {
+        return {
+          phone_number: number,
+          is_registered: true,
+          user: foundUser.toJSON()
+        }
+      }
+
+      // Nếu không tìm thấy user, báo là chưa đăng ký
+      return {
+        phone_number: number,
+        is_registered: false,
+        user: null
+      }
+    })
+
+    res.json({
+      message: "Phone contacts synced successfully",
+      data: result
+    })
+
+  } catch (error) {
+    console.error("Sync contacts error:", error)
+    res.status(500).json({
+      error: { message: "Failed to sync contacts" }
+    })
+  }
+})
+
 
 module.exports = router
