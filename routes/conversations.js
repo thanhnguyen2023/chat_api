@@ -3,6 +3,7 @@ const { Op } = require("sequelize")
 const { Conversation, Participant, User, Message, GroupSetting, BlockedUser } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
 const { validate, schemas } = require("../utils/validation")
+const { encryptJson } = require("../utils/encrypt")
 
 const router = express.Router()
 
@@ -72,7 +73,7 @@ router.get("/", authenticateToken, async (req, res) => {
       }
     })
 
-    res.json({
+    res.json(encryptJson({
       data: {
         conversations: formattedConversations,
         pagination: {
@@ -82,7 +83,7 @@ router.get("/", authenticateToken, async (req, res) => {
           per_page: Number.parseInt(limit),
         },
       },
-    })
+    }))
   } catch (error) {
     console.error("Get conversations error:", error)
     res.status(500).json({
