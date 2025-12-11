@@ -3,6 +3,8 @@ const express = require("express")
 const { Op } = require("sequelize")
 const { User, UserContact, BlockedUser, Conversation, Participant } = require("../models")
 const { authenticateToken } = require("../middleware/auth")
+const upload = require("../middleware/upload")
+
 
 const router = express.Router()
 
@@ -74,30 +76,51 @@ router.get("/me", authenticateToken, async (req, res) => {
 })
 
 // Update my profile
-router.put("/me", authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.user_id
-    const { username, email, avatar_url, status, full_name, gender, is_private, bio } = req.body
+router.put(
+  "/me",
+  authenticateToken,
+  upload.single("avatar"),
+  async (req, res) => {
+    try {
+      const userId = req.user.user_id
 
-    await User.update(
-      { username, email, avatar_url, status, full_name, gender, is_private, bio },
-      { where: { user_id: userId } }
-    )
+      const { username, email, status, full_name, gender, is_private, bio } =
+        req.body
 
+      // Nếu người dùng upload ảnh -> tạo avatar_url
+      let avatar_url = undefined
+      if (req.file) {
+        avatar_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      }
 
-    const updatedUser = await User.findByPk(userId, {
-      attributes: { exclude: ["password"] }
-    })
+      const updateData = {
+        username,
+        email,
+        status,
+        full_name,
+        gender,
+        is_private,
+        bio,
+      }
 
-    res.json({
-      message: "Profile updated successfully",
-      data: updatedUser
-    })
-  } catch (error) {
-    console.error("Update profile error:", error)
-    res.status(500).json({ error: { message: "Failed to update profile" } })
+      if (avatar_url) updateData.avatar_url = avatar_url
+
+      await User.update(updateData, { where: { user_id: userId } })
+
+      const updatedUser = await User.findByPk(userId, {
+        attributes: { exclude: ["password"] },
+      })
+
+      res.json({
+        message: "Profile updated successfully",
+        data: updatedUser,
+      })
+    } catch (error) {
+      console.error("Update profile error:", error)
+      res.status(500).json({ error: { message: "Failed to update profile" } })
+    }
   }
-})
+)
 
 // Get all users (with search and pagination)
 router.get("/", authenticateToken, async (req, res) => {
