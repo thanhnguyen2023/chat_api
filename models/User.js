@@ -70,9 +70,9 @@ const User = sequelize.define(
     avatar_url: {
       type: DataTypes.TEXT,
       allowNull: true,
-      validate: {
-        isUrl: true
-      }
+      // validate: {
+      //   isUrl: true
+      // }
     },
 
     status: {
