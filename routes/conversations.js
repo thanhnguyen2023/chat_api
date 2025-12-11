@@ -12,15 +12,35 @@ router.get("/", authenticateToken, async (req, res) => {
     const { page = 1, limit = 20 } = req.query
     const offset = (Number.parseInt(page) - 1) * Number.parseInt(limit)
 
-    // Get conversations where user is a participant
+    // Bước 1: Lấy danh sách conversation_id mà user tham gia
+    const userConversations = await Participant.findAll({
+      where: { user_id: req.user.user_id },
+      attributes: ["conversation_id"],
+      raw: true,
+    })
+
+    const conversationIds = userConversations.map((p) => p.conversation_id)
+
+    if (conversationIds.length === 0) {
+      return res.json({
+        data: {
+          conversations: [],
+          pagination: {
+            current_page: Number.parseInt(page),
+            total_pages: 0,
+            total_count: 0,
+            per_page: Number.parseInt(limit),
+          },
+        },
+      })
+    }
+
+    // Bước 2: Lấy conversations với thông tin đầy đủ
     const { count, rows: conversations } = await Conversation.findAndCountAll({
+      where: {
+        conversation_id: { [Op.in]: conversationIds },
+      },
       include: [
-        // {
-        //   model: Participant,
-        //   as: "participants",
-        //   where: { user_id: req.user.user_id },
-        //   attributes: [],
-        // },
         {
           model: Participant,
           as: "participants",
@@ -60,14 +80,14 @@ router.get("/", authenticateToken, async (req, res) => {
         conversation_name: conv.conversation_name,
         is_group: conv.is_group,
         created_at: conv.created_at,
-        participants: conv.participant?.length != 0 ? conv.participants.map((p) => p.user) : conv.participants.user,
+        participants: conv.participants?.map((p) => p.user) || [],
         last_message: lastMessage
           ? {
-              message_id: lastMessage.message_id,
-              content: lastMessage.content,
-              created_at: lastMessage.created_at,
-              sender: lastMessage.sender,
-            }
+            message_id: lastMessage.message_id,
+            content: lastMessage.content,
+            created_at: lastMessage.created_at,
+            sender: lastMessage.sender,
+          }
           : null,
       }
     })
