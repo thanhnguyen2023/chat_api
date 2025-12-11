@@ -28,7 +28,15 @@ const defineAssociations = () => {
   User.hasMany(Notification, { foreignKey: "user_id", as: "notifications" })
   User.hasMany(BlockedUser, { foreignKey: "user_id", as: "blockedUsers" })
   User.hasMany(BlockedUser, { foreignKey: "blocked_user_id", as: "blockedBy" })
+  UserContact.belongsTo(User, {
+    as: "friend",
+    foreignKey: "friend_id",
+  })
 
+  UserContact.belongsTo(User, {
+    as: "owner",
+    foreignKey: "user_id",
+  })
   // Follow
   User.belongsToMany(User, {
     through: UserContact,
@@ -57,13 +65,13 @@ const defineAssociations = () => {
   Post.hasMany(PostLike, { foreignKey: "post_id", as: "likes" })
   PostLike.belongsTo(User, {
     foreignKey: "user_id",
-    as: "user", 
+    as: "user",
   })
 
   Post.hasMany(PostSave, { foreignKey: "post_id", as: "saves" })
   PostSave.belongsTo(User, {
     foreignKey: "user_id",
-    as: "user", 
+    as: "user",
   })
 
   Post.hasMany(PostComment, { foreignKey: "post_id", as: "comments" })
