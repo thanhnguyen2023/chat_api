@@ -159,7 +159,7 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
 
     // === Check NSFW ===
     for (const file of files) {
-      console
+      console.log(file.mimetype)
       if (file.mimetype.startsWith("image/")) {
         const nsfwScore = await checkNSFW(file.path)
         if (nsfwScore > 0.2) {

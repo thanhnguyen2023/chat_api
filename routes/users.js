@@ -317,7 +317,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       where: { user_id: userId },
       attributes: ["friend_id"]
     })
-        // 3️⃣ Tìm conversation_id 1-1 giữa 2 người
+    // 3️⃣ Tìm conversation_id 1-1 giữa 2 người
     const myConversations = await Participant.findAll({
       attributes: ["conversation_id"],
       include: [
@@ -331,7 +331,7 @@ router.get("/:userId", authenticateToken, async (req, res) => {
       where: { user_id: req.user.user_id }
     })
     const conversationIds = myConversations.map(p => p.conversation_id)
-        const shared = await Participant.findOne({
+    const shared = await Participant.findOne({
       where: {
         user_id: userId,
         conversation_id: { [Op.in]: conversationIds }
@@ -514,8 +514,13 @@ router.delete("/me/contacts/:friendId", authenticateToken, async (req, res) => {
 
     await contact.destroy()
 
+    const followersCount = await UserContact.count({
+      where: { friend_id: friendId }
+    })
+
     res.json({
-      message: "Contact removed successfully"
+      message: "Contact removed successfully",
+      follower_count: followersCount
     })
   } catch (error) {
     console.error("Remove contact error:", error)
