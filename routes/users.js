@@ -431,14 +431,14 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
       })
     }
 
-    // Check if user is trying to add themselves
+    // Cannot follow yourself
     if (Number.parseInt(friendId) === req.user.user_id) {
       return res.status(400).json({
-        error: { message: "Cannot add yourself as a contact" }
+        error: { message: "Cannot follow yourself" }
       })
     }
 
-    // Check if already in contacts
+    // Check if already follow
     const existingContact = await UserContact.findOne({
       where: {
         user_id: req.user.user_id,
@@ -448,11 +448,11 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
 
     if (existingContact) {
       return res.status(409).json({
-        error: { message: "User already in contacts" }
+        error: { message: "Already following this user" }
       })
     }
 
-    // Check if user is blocked
+    // Block check
     const isBlocked = await BlockedUser.findOne({
       where: {
         [Op.or]: [
@@ -464,27 +464,35 @@ router.post("/me/contacts/:friendId", authenticateToken, async (req, res) => {
 
     if (isBlocked) {
       return res.status(403).json({
-        error: { message: "Cannot add blocked user to contacts" }
+        error: { message: "Cannot follow blocked user" }
       })
     }
 
-    // Add to contacts
+    // FOLLOW USER
     const contact = await UserContact.create({
       user_id: req.user.user_id,
       friend_id: friendId
     })
 
+    // Count followers of friendId
+    const followersCount = await UserContact.count({
+      where: { friend_id: friendId }
+    })
+
     res.status(201).json({
-      message: "Contact added successfully",
+      message: "Followed successfully",
+      follower_count: followersCount,  // 👈 TRẢ VỀ SỐ FOLLOWER
       data: { contact_id: contact.contact_id }
     })
+
   } catch (error) {
-    console.error("Add contact error:", error)
+    console.error("Add contact (follow) error:", error)
     res.status(500).json({
-      error: { message: "Failed to add contact" }
+      error: { message: "Failed to follow user" }
     })
   }
 })
+
 
 // Remove user from contacts
 router.delete("/me/contacts/:friendId", authenticateToken, async (req, res) => {
