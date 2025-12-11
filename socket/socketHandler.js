@@ -271,6 +271,32 @@ const socketHandler = (io) => {
       }
     });
 
+    socket.on("file_uploaded", async (data) => {
+      try {
+        const { message_id, attachments } = data;
+
+        const message = await Message.findByPk(message_id, {
+          include: [
+            { model: User, as: "sender", attributes: ["user_id", "username", "avatar_url"] },
+            { model: MessageStatus, as: "statuses" }, // attachments sẽ gắn thủ công
+          ],
+        });
+
+        // Gắn attachments trực tiếp
+        message.dataValues.attachments = attachments; // <-- quan trọng
+
+        const roomName = `conversation_${message.conversation_id}`;
+        io.to(roomName).emit("new_message", {
+          message,
+          conversation_id: message.conversation_id,
+          attachments,
+        });
+      } catch (err) {
+        console.error(err);
+        socket.emit("error", { message: "Failed to broadcast file" });
+      }
+    });
+
 
     // Handle typing indicators
     socket.on("typing_start", async (data) => {
