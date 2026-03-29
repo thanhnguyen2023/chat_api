@@ -1,4 +1,5 @@
 const Joi = require("joi")
+const postValidationSchemas = require("./postValidation")
 
 const schemas = {
   register: Joi.object({
@@ -11,6 +12,19 @@ const schemas = {
   login: Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
+  }),
+
+  registerPhone: Joi.object({
+    phone_number: Joi.string().pattern(/^[0-9]{10,11}$/).required().messages({
+      "string.pattern.base": "Số điện thoại không hợp lệ"
+    }),
+    password: Joi.string().min(6).required(),
+    full_name: Joi.string().required()
+  }),
+
+  loginPhone: Joi.object({
+    phone_number: Joi.string().required(),
+    password: Joi.string().required()
   }),
 
   updateProfile: Joi.object({
@@ -33,6 +47,14 @@ const schemas = {
   updateMessageStatus: Joi.object({
     status: Joi.string().valid("sent", "delivered", "read").required(),
   }),
+
+  createPost: postValidationSchemas.createPost,
+  createComment: postValidationSchemas.createComment,
+
+  updatePost: postValidationSchemas.updatePost,
+  updateComment: postValidationSchemas.updateComment,
+
+  updatePostMedia: postValidationSchemas.updatePostMedia
 }
 
 const validate = (schema) => {
@@ -52,5 +74,5 @@ const validate = (schema) => {
 
 module.exports = {
   schemas,
-  validate,
+  validate
 }

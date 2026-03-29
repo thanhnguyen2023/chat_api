@@ -14,7 +14,7 @@ router.get("/", authenticateToken, async (req, res) => {
     const whereClause = { user_id: req.user.user_id }
 
     // Filter by seen status if provided
-    if (is_seen !== undefined) {
+    if (is_seen !== undefined) { 
       whereClause.is_seen = is_seen === "true"
     }
 

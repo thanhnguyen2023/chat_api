@@ -275,7 +275,9 @@ const socketHandler = (io) => {
     // Handle typing indicators
     socket.on("typing_start", async (data) => {
       try {
-        const { conversation_id } = data
+        const { conversation_id } = data;
+        const roomName1 = `conversation_${conversation_id}`;
+        console.log("🔵 Typing from", socket.userId, "emit to", roomName1);
 
         // Check if user is participant
         const participant = await Participant.findOne({
@@ -291,11 +293,13 @@ const socketHandler = (io) => {
 
         // Broadcast typing indicator to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_typing", {
+        io.to(roomName).emit("user_typing", {
           user_id: socket.userId,
           username: socket.user.username,
           conversation_id,
-        })
+        });
+        console.log("Server nhận user_typing từ", socket.userId, "data:", socket.user.username, conversation_id)
+
       } catch (error) {
         console.error("Typing start error:", error)
       }
@@ -319,8 +323,9 @@ const socketHandler = (io) => {
 
         // Broadcast stop typing to conversation room (except sender)
         const roomName = `conversation_${conversation_id}`
-        socket.to(roomName).emit("user_stopped_typing", {
+        io.to(roomName).emit("user_stopped_typing", {
           user_id: socket.userId,
+          username: socket.user.username,
           conversation_id,
         })
       } catch (error) {
@@ -382,7 +387,10 @@ const socketHandler = (io) => {
             user_id: socket.userId,
           },
         })
-
+        const roomName = `conversation_${data.conversation_id}`
+        socket.join(roomName)
+        console.log("🟢 Socket joined:", socket.id, "->", roomName)
+        console.log("🟢 Current rooms:", Array.from(socket.rooms))
         if (participant) {
           const roomName = `conversation_${conversation_id}`
           socket.join(roomName)
@@ -472,6 +480,7 @@ const socketHandler = (io) => {
         socket.emit("online_users", {
           conversation_id,
           online_users: onlineUsers,
+
         })
       } catch (error) {
         console.error("Get online users error:", error)

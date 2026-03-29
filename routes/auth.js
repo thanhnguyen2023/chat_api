@@ -3,7 +3,9 @@ const jwt = require("jsonwebtoken")
 const { User } = require("../models")
 const { validate, schemas } = require("../utils/validation")
 const { authenticateToken } = require("../middleware/auth")
-const { Op } = require('sequelize')
+const authController = require("../controllers/authController")
+
+const { Op } = require("sequelize")
 
 const router = express.Router()
 
@@ -20,15 +22,16 @@ router.post("/register", validate(schemas.register), async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({
       where: {
-        [Op.or]: [{ email }, { username }],
-      },
+        [Op.or]: [{ email }, { username }]
+      }
     })
+
 
     if (existingUser) {
       return res.status(409).json({
         error: {
-          message: existingUser.email === email ? "Email already registered" : "Username already taken",
-        },
+          message: existingUser.email === email ? "Email already registered" : "Username already taken"
+        }
       })
     }
 
@@ -38,7 +41,7 @@ router.post("/register", validate(schemas.register), async (req, res) => {
       email,
       password,
       avatar_url,
-      status: "online",
+      status: "online"
     })
 
     // Generate token
@@ -49,8 +52,8 @@ router.post("/register", validate(schemas.register), async (req, res) => {
       data: {
         user: user.toJSON(),
         token,
-        expires_in: process.env.JWT_EXPIRES_IN || "7d",
-      },
+        expires_in: process.env.JWT_EXPIRES_IN || "7d"
+      }
     })
   } catch (error) {
     console.error("Registration error:", error)
@@ -59,16 +62,22 @@ router.post("/register", validate(schemas.register), async (req, res) => {
       return res.status(400).json({
         error: {
           message: "Validation error",
-          details: error.errors.map((err) => err.message),
-        },
+          details: error.errors.map((err) => err.message)
+        }
       })
     }
 
     res.status(500).json({
-      error: { message: "Registration failed" },
+      error: { message: "Registration failed" }
     })
   }
 })
+
+router.post(
+  "/register-phone",
+  validate(schemas.registerPhone),
+  authController.registerPhone
+)
 
 // Login user
 router.post("/login", validate(schemas.login), async (req, res) => {
@@ -80,7 +89,7 @@ router.post("/login", validate(schemas.login), async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        error: { message: "Invalid email or password" },
+        error: { message: "Invalid email or password" }
       })
     }
 
@@ -89,7 +98,7 @@ router.post("/login", validate(schemas.login), async (req, res) => {
 
     if (!isValidPassword) {
       return res.status(401).json({
-        error: { message: "Invalid email or password" },
+        error: { message: "Invalid email or password" }
       })
     }
 
@@ -104,16 +113,22 @@ router.post("/login", validate(schemas.login), async (req, res) => {
       data: {
         user: user.toJSON(),
         token,
-        expires_in: process.env.JWT_EXPIRES_IN || "7d",
-      },
+        expires_in: process.env.JWT_EXPIRES_IN || "7d"
+      }
     })
   } catch (error) {
     console.error("Login error:", error)
     res.status(500).json({
-      error: { message: "Login failed" },
+      error: { message: "Login failed" }
     })
   }
 })
+
+router.post(
+  "/login-phone",
+  validate(schemas.loginPhone),
+  authController.loginPhone
+)
 
 // Logout user
 router.post("/logout", authenticateToken, async (req, res) => {
@@ -122,12 +137,12 @@ router.post("/logout", authenticateToken, async (req, res) => {
     await req.user.update({ status: "offline" })
 
     res.json({
-      message: "Logout successful",
+      message: "Logout successful"
     })
   } catch (error) {
     console.error("Logout error:", error)
     res.status(500).json({
-      error: { message: "Logout failed" },
+      error: { message: "Logout failed" }
     })
   }
 })
@@ -137,65 +152,13 @@ router.get("/me", authenticateToken, async (req, res) => {
   try {
     res.json({
       data: {
-        user: req.user.toJSON(),
-      },
+        user: req.user.toJSON()
+      }
     })
   } catch (error) {
     console.error("Get profile error:", error)
     res.status(500).json({
-      error: { message: "Failed to get user profile" },
-    })
-  }
-})
-
-// Update user profile
-router.put("/me", authenticateToken, validate(schemas.updateProfile), async (req, res) => {
-  try {
-    const { username, avatar_url, status } = req.body
-    const updateData = {}
-
-    if (username) updateData.username = username
-    if (avatar_url) updateData.avatar_url = avatar_url
-    if (status) updateData.status = status
-
-    // Check if username is already taken by another user
-    if (username && username !== req.user.username) {
-      const existingUser = await User.findOne({
-        where: {
-          username,
-          user_id: { $ne: req.user.user_id },
-        },
-      })
-
-      if (existingUser) {
-        return res.status(409).json({
-          error: { message: "Username already taken" },
-        })
-      }
-    }
-
-    await req.user.update(updateData)
-
-    res.json({
-      message: "Profile updated successfully",
-      data: {
-        user: req.user.toJSON(),
-      },
-    })
-  } catch (error) {
-    console.error("Update profile error:", error)
-
-    if (error.name === "SequelizeValidationError") {
-      return res.status(400).json({
-        error: {
-          message: "Validation error",
-          details: error.errors.map((err) => err.message),
-        },
-      })
-    }
-
-    res.status(500).json({
-      error: { message: "Failed to update profile" },
+      error: { message: "Failed to get user profile" }
     })
   }
 })
@@ -209,13 +172,13 @@ router.post("/refresh", authenticateToken, async (req, res) => {
       message: "Token refreshed successfully",
       data: {
         token,
-        expires_in: process.env.JWT_EXPIRES_IN || "7d",
-      },
+        expires_in: process.env.JWT_EXPIRES_IN || "7d"
+      }
     })
   } catch (error) {
     console.error("Token refresh error:", error)
     res.status(500).json({
-      error: { message: "Failed to refresh token" },
+      error: { message: "Failed to refresh token" }
     })
   }
 })
@@ -225,8 +188,8 @@ router.get("/verify", authenticateToken, (req, res) => {
   res.json({
     message: "Token is valid",
     data: {
-      user: req.user.toJSON(),
-    },
+      user: req.user.toJSON()
+    }
   })
 })
 

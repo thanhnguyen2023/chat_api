@@ -1,8 +1,10 @@
+/* eslint-disable no-console */
 const express = require("express")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
-const { Message, Attachment, Conversation, Participant } = require("../models")
+const { PythonShell } = require("python-shell")
+const { Message, Attachment, Conversation, Participant, Post, PostMedia, User } = require("../models") // Kết hợp các model từ cả hai nhánh
 const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
@@ -36,7 +38,7 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname)
     const name = path.basename(file.originalname, ext)
     cb(null, `${name}-${uniqueSuffix}${ext}`)
-  },
+  }
 })
 
 // File filter
@@ -51,9 +53,9 @@ const fileFilter = (req, file, cb) => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/plain",
+      "text/plain"
     ],
-    audio: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"],
+    audio: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4"]
   }
 
   const allAllowedTypes = Object.values(allowedTypes).flat()
@@ -71,8 +73,8 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: Number.parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
-    files: 5, // Maximum 5 files per request
-  },
+    files: 5
+  }
 })
 
 // Helper function to determine file type
@@ -83,19 +85,53 @@ const getFileType = (mimetype) => {
   return "document"
 }
 
+// === Function to check NSFW ===
+const checkNSFW = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const pythonPath = "python" // Nếu dùng virtualenv thì chỉnh lại thành đường dẫn cụ thể
+    const scriptPath = path.join(__dirname, "../open_nsfw/classify_nsfw.py")
+
+    const modelDef = path.join(__dirname, "../open_nsfw/nsfw_model/deploy.prototxt")
+    const pretrainedModel = path.join(__dirname, "../open_nsfw/nsfw_model/resnet_50_1by2_nsfw.caffemodel")
+
+    const options = {
+      mode: "text",
+      pythonPath,
+      pythonOptions: ["-u"],
+      args: [
+        "--model_def", modelDef,
+        "--pretrained_model", pretrainedModel,
+        filePath, // input_file phải nằm cuối
+      ],
+    }
+
+    PythonShell.run(scriptPath, options)
+      .then((results) => {
+        if (!results || results.length === 0) {
+          return resolve(0)
+        }
+        const lastLine = results[results.length - 1].trim()
+        const score = parseFloat(lastLine)
+        resolve(isNaN(score) ? 0 : score)
+      })
+      .catch((err) => {
+        console.error("PythonShellError:", err)
+        reject(err)
+      })
+  })
+}
+
+
 // Upload files and attach to message
 router.post("/message/:messageId", authenticateToken, upload.array("files", 5), async (req, res) => {
   try {
     const { messageId } = req.params
     const files = req.files
 
-    if (!files || files.length === 0) {
-      return res.status(400).json({
-        error: { message: "No files uploaded" },
-      })
-    }
+    if (!files || files.length === 0)
+      return res.status(400).json({ error: { message: "No files uploaded" } })
 
-    // Check if message exists and user has access
+    // Kiểm tra message có tồn tại không
     const message = await Message.findByPk(messageId, {
       include: [
         {
@@ -106,94 +142,86 @@ router.post("/message/:messageId", authenticateToken, upload.array("files", 5), 
               model: Participant,
               as: "participants",
               where: { user_id: req.user.user_id },
-              attributes: [],
-            },
-          ],
-        },
-      ],
+              attributes: []
+            }
+          ]
+        }
+      ]
     })
 
     if (!message) {
       // Clean up uploaded files if message not found
-      files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
-
-      return res.status(404).json({
-        error: { message: "Message not found or access denied" },
-      })
+      files.forEach((f) => fs.unlink(f.path, () => {}))
+      return res.status(404).json({ error: { message: "Message not found or access denied" } })
     }
 
-    // Only message sender can add attachments
     if (message.sender_id !== req.user.user_id) {
       // Clean up uploaded files
-      files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
-
-      return res.status(403).json({
-        error: { message: "Can only add attachments to your own messages" },
-      })
+      files.forEach((f) => fs.unlink(f.path, () => {}))
+      return res.status(403).json({ error: { message: "Can only add attachments to your own messages" } })
     }
 
-    // Create attachment records
-    const attachmentPromises = files.map((file) => {
-      const relativePath = path.relative(path.join(__dirname, ".."), file.path)
-      const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+    // === 🧠 Check NSFW cho từng ảnh ===
+    for (const file of files) {
+      if (file.mimetype.startsWith("image/")) {
+        const nsfwScore = await checkNSFW(file.path)
+        console.log(`🧩 [${file.originalname}] NSFW Score =`, nsfwScore)
+        if (nsfwScore > 0.6) {
+          fs.unlink(file.path, () => {})
+          return res.status(400).json({
+              error: { message: "Ảnh có nội dung không phù hợp" },
+          })
+        }
+      }
+    }
 
-      return Attachment.create({
-        message_id: messageId,
-        file_url: fileUrl,
-        file_type: getFileType(file.mimetype),
-        file_size: file.size,
+    // === Lưu vào DB ===
+    const attachments = await Promise.all(
+      files.map((file) => {
+        const relativePath = path.relative(path.join(__dirname, ".."), file.path)
+        const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+        return Attachment.create({
+          message_id: messageId,
+          file_url: fileUrl,
+          file_type: getFileType(file.mimetype),
+          file_size: file.size,
+        })
       })
-    })
-
-    const attachments = await Promise.all(attachmentPromises)
+    )
 
     res.status(201).json({
-      message: "Files uploaded successfully",
-      data: {
-        attachments: attachments.map((attachment) => ({
-          attachment_id: attachment.attachment_id,
-          file_url: attachment.file_url,
-          file_type: attachment.file_type,
-          file_size: attachment.file_size,
-          uploaded_at: attachment.uploaded_at,
-        })),
-      },
+      message: "✅ Files uploaded successfully",
+      data: attachments.map((a) => ({
+        attachment_id: a.attachment_id,
+        file_url: a.file_url,
+        file_type: a.file_type,
+        file_size: a.file_size,
+        uploaded_at: a.uploaded_at,
+      })),
     })
   } catch (error) {
     console.error("Upload error:", error)
 
     // Clean up uploaded files on error
     if (req.files) {
-      req.files.forEach((file) => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error("Error deleting file:", err)
-        })
-      })
+      req.files.forEach((f) => fs.unlink(f.path, () => {}))
     }
 
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
-          error: { message: "File too large" },
+          error: { message: "File too large" }
         })
       }
       if (error.code === "LIMIT_FILE_COUNT") {
         return res.status(400).json({
-          error: { message: "Too many files" },
+          error: { message: "Too many files" }
         })
       }
     }
 
     res.status(500).json({
-      error: { message: "Upload failed" },
+      error: { message: "Upload failed" }
     })
   }
 })
@@ -205,7 +233,7 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
 
     if (!file) {
       return res.status(400).json({
-        error: { message: "No file uploaded" },
+        error: { message: "No file uploaded" }
       })
     }
 
@@ -216,7 +244,7 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
       })
 
       return res.status(400).json({
-        error: { message: "Avatar must be an image" },
+        error: { message: "Avatar must be an image" }
       })
     }
 
@@ -231,8 +259,8 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
     res.json({
       message: "Avatar uploaded successfully",
       data: {
-        avatar_url: fullUrl,
-      },
+        avatar_url: fullUrl
+      }
     })
   } catch (error) {
     console.error("Avatar upload error:", error)
@@ -245,10 +273,100 @@ router.post("/avatar", authenticateToken, upload.single("avatar"), async (req, r
     }
 
     res.status(500).json({
-      error: { message: "Avatar upload failed" },
+      error: { message: "Avatar upload failed" }
     })
   }
 })
+
+router.post(
+  "/post/:postId",
+  authenticateToken,
+  // Cho phép upload tối đa 10 files
+  upload.array("media", 10),
+  async (req, res) => {
+    try {
+      const { postId } = req.params
+      const files = req.files
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({
+          error: { message: "No files uploaded" }
+        })
+      }
+
+      // Kiểm tra xem post có tồn tại và có thuộc về user không
+      const post = await Post.findByPk(postId)
+      if (!post) {
+        // Xóa file đã tải lên nếu post không tồn tại
+        files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+        return res.status(404).json({ error: { message: "Post not found" } })
+      }
+
+      // Chỉ chủ sở hữu post mới được upload
+      if (post.user_id !== req.user.user_id) {
+        files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+        return res.status(403).json({
+          error: { message: "You are not authorized to upload to this post" }
+        })
+      }
+
+      // Lọc file (chỉ cho phép image/video cho post)
+      const validFiles = []
+      const invalidFiles = []
+      for (const file of files) {
+        const fileType = getFileType(file.mimetype)
+        if (fileType === "image" || fileType === "video") {
+          validFiles.push({ file, type: fileType })
+        } else {
+          invalidFiles.push(file)
+        }
+      }
+
+      // Xóa các file không hợp lệ
+      invalidFiles.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+
+      if (validFiles.length === 0) {
+        return res.status(400).json({
+          error: { message: "No valid image or video files uploaded." }
+        })
+      }
+
+      //  Tạo bản ghi PostMedia
+      const mediaPromises = validFiles.map((item, index) => {
+        const relativePath = path.relative(
+          path.join(__dirname, ".."),
+          item.file.path
+        )
+
+        const fileUrl = `/${relativePath.replace(/\\/g, "/")}`
+
+        const fullUrl = `${req.protocol}://${req.get("host")}${fileUrl}`
+
+        return PostMedia.create({
+          post_id: postId,
+          media_url: fullUrl,
+          media_type: item.type,
+          order_index: index + 1
+        })
+      })
+
+      const savedMedia = await Promise.all(mediaPromises)
+
+      res.status(201).json({
+        message: "Media uploaded successfully",
+        data: savedMedia
+      })
+
+    } catch (error) {
+      console.error("Post upload error:", error)
+      // Xóa file nếu có lỗi
+      if (req.files) {
+        req.files.forEach((file) => fs.unlink(file.path, (err) => console.error(err)))
+      }
+      res.status(500).json({ error: { message: "Upload failed" } })
+    }
+  }
+)
 
 // Get attachment by ID
 router.get("/attachment/:attachmentId", authenticateToken, async (req, res) => {
@@ -269,33 +387,33 @@ router.get("/attachment/:attachmentId", authenticateToken, async (req, res) => {
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
     res.json({
-      data: { attachment },
+      data: { attachment }
     })
   } catch (error) {
     console.error("Get attachment error:", error)
     res.status(500).json({
-      error: { message: "Failed to get attachment" },
+      error: { message: "Failed to get attachment" }
     })
   }
 })
 
-// Delete attachment
+// Delete
 router.delete("/attachment/:attachmentId", authenticateToken, async (req, res) => {
   try {
     const { attachmentId } = req.params
@@ -314,25 +432,25 @@ router.delete("/attachment/:attachmentId", authenticateToken, async (req, res) =
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
     // Only message sender can delete attachments
     if (attachment.message.sender_id !== req.user.user_id) {
       return res.status(403).json({
-        error: { message: "Can only delete attachments from your own messages" },
+        error: { message: "Can only delete attachments from your own messages" }
       })
     }
 
@@ -346,12 +464,12 @@ router.delete("/attachment/:attachmentId", authenticateToken, async (req, res) =
     await attachment.destroy()
 
     res.json({
-      message: "Attachment deleted successfully",
+      message: "Attachment deleted successfully"
     })
   } catch (error) {
     console.error("Delete attachment error:", error)
     res.status(500).json({
-      error: { message: "Failed to delete attachment" },
+      error: { message: "Failed to delete attachment" }
     })
   }
 })
@@ -375,18 +493,18 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
                   model: Participant,
                   as: "participants",
                   where: { user_id: req.user.user_id },
-                  attributes: [],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  attributes: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     })
 
     if (!attachment) {
       return res.status(404).json({
-        error: { message: "Attachment not found or access denied" },
+        error: { message: "Attachment not found or access denied" }
       })
     }
 
@@ -404,8 +522,8 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
           file_size: attachment.file_size,
           uploaded_at: attachment.uploaded_at,
           exists: true,
-          actual_size: stats.size,
-        },
+          actual_size: stats.size
+        }
       })
     } catch (fileError) {
       res.json({
@@ -415,14 +533,14 @@ router.get("/info/:attachmentId", authenticateToken, async (req, res) => {
           file_type: attachment.file_type,
           file_size: attachment.file_size,
           uploaded_at: attachment.uploaded_at,
-          exists: false,
-        },
+          exists: false
+        }
       })
     }
   } catch (error) {
     console.error("Get file info error:", error)
     res.status(500).json({
-      error: { message: "Failed to get file info" },
+      error: { message: "Failed to get file info" }
     })
   }
 })
@@ -432,24 +550,23 @@ router.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
-        error: { message: "File too large" },
+        error: { message: "File too large" }
       })
     }
     if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
-        error: { message: "Too many files" },
+        error: { message: "Too many files" }
       })
     }
     if (error.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
-        error: { message: "Unexpected file field" },
+        error: { message: "Unexpected file field" }
       })
     }
   }
-
   if (error.message.includes("File type") && error.message.includes("not allowed")) {
     return res.status(400).json({
-      error: { message: error.message },
+      error: { message: error.message }
     })
   }
 

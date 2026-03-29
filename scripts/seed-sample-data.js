@@ -9,31 +9,51 @@ async function seedSampleData() {
     const users = await User.bulkCreate([
       {
         username: "alice",
+        full_name: "Alice Johnson",
+        gender: "female",
+        is_private: 0,
+        bio: "Loves chatting and coffee ☕",
         email: "alice@example.com",
         password: await bcrypt.hash("password123", 12),
         avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alice",
         status: "online",
+        created_at: new Date(),
       },
       {
         username: "bob",
+        full_name: "Bob Williams",
+        gender: "male",
+        is_private: 0,
+        bio: "Tech enthusiast and gamer 🎮",
         email: "bob@example.com",
         password: await bcrypt.hash("password123", 12),
         avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
         status: "offline",
+        created_at: new Date(),
       },
       {
         username: "charlie",
+        full_name: "Charlie Brown",
+        gender: "male",
+        is_private: 1,
+        bio: "Backend developer and coffee lover ☕",
         email: "charlie@example.com",
         password: await bcrypt.hash("password123", 12),
         avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie",
         status: "busy",
+        created_at: new Date(),
       },
       {
         username: "diana",
+        full_name: "Diana Prince",
+        gender: "female",
+        is_private: 0,
+        bio: "Designer and traveler 🌍",
         email: "diana@example.com",
         password: await bcrypt.hash("password123", 12),
         avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Diana",
         status: "online",
+        created_at: new Date(),
       },
     ])
 
@@ -41,29 +61,20 @@ async function seedSampleData() {
 
     // Create sample conversations
     const conversations = await Conversation.bulkCreate([
-      {
-        conversation_name: null, // Direct message
-        is_group: false,
-      },
-      {
-        conversation_name: "Project Team",
-        is_group: true,
-      },
-      {
-        conversation_name: "Friends Group",
-        is_group: true,
-      },
+      { conversation_name: null, is_group: false },
+      { conversation_name: "Project Team", is_group: true },
+      { conversation_name: "Friends Group", is_group: true },
     ])
 
     console.log("✅ Created sample conversations")
 
-    // Add participants to conversations
+    // Add participants
     await Participant.bulkCreate([
-      // Direct message between Alice and Bob
+      // Direct message Alice ↔ Bob
       { conversation_id: conversations[0].conversation_id, user_id: users[0].user_id },
       { conversation_id: conversations[0].conversation_id, user_id: users[1].user_id },
 
-      // Project Team group (Alice, Bob, Charlie)
+      // Project Team (Alice, Bob, Charlie)
       { conversation_id: conversations[1].conversation_id, user_id: users[0].user_id },
       { conversation_id: conversations[1].conversation_id, user_id: users[1].user_id },
       { conversation_id: conversations[1].conversation_id, user_id: users[2].user_id },
@@ -75,11 +86,10 @@ async function seedSampleData() {
       { conversation_id: conversations[2].conversation_id, user_id: users[3].user_id },
     ])
 
-    console.log("✅ Added participants to conversations")
+    console.log("✅ Added participants")
 
-    // Create sample messages
+    // Create messages
     await Message.bulkCreate([
-      // Direct message conversation
       {
         conversation_id: conversations[0].conversation_id,
         sender_id: users[0].user_id,
@@ -88,10 +98,9 @@ async function seedSampleData() {
       {
         conversation_id: conversations[0].conversation_id,
         sender_id: users[1].user_id,
-        content: "Hi Alice! I'm doing great, thanks for asking. How about you?",
+        content: "Hi Alice! I'm doing great, thanks. How about you?",
       },
 
-      // Project Team group
       {
         conversation_id: conversations[1].conversation_id,
         sender_id: users[0].user_id,
@@ -108,7 +117,6 @@ async function seedSampleData() {
         content: "Great work Charlie! I'll review it today.",
       },
 
-      // Friends Group
       {
         conversation_id: conversations[2].conversation_id,
         sender_id: users[3].user_id,
@@ -138,7 +146,7 @@ async function seedSampleData() {
   }
 }
 
-// Run if called directly
+// Run directly
 if (require.main === module) {
   const sequelize = require("../config/sequelize")
 
@@ -148,9 +156,7 @@ if (require.main === module) {
       console.log("✅ Database connected")
       return seedSampleData()
     })
-    .then(() => {
-      process.exit(0)
-    })
+    .then(() => process.exit(0))
     .catch((error) => {
       console.error("❌ Database connection failed:", error)
       process.exit(1)
